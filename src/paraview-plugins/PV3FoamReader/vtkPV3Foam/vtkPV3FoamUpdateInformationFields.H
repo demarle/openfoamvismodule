@@ -22,7 +22,7 @@ License
     along with OpenFOAM; if not, write to the Free Software Foundation,
     Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
-Class
+InClass
     vtkPV3Foam
 
 \*---------------------------------------------------------------------------*/
@@ -35,7 +35,7 @@ Class
 template<template<class> class patchType, class meshType>
 void Foam::vtkPV3Foam::updateInformationFields
 (
-    vtkDataArraySelection *fieldSelection
+    vtkDataArraySelection *arraySelection
 )
 {
     if (debug)
@@ -43,12 +43,12 @@ void Foam::vtkPV3Foam::updateInformationFields
         Info<< "entered Foam::vtkPV3Foam::updateInformationFields" << endl;
     }
 
-    const wordList selectedArrayEntries = getSelectedArrayEntries
+    // preserve the currently selected values
+    const stringList selectedEntries = getSelectedArrayEntries
     (
-        fieldSelection
+        arraySelection
     );
-
-    fieldSelection->RemoveAllArrays();
+    arraySelection->RemoveAllArrays();
 
     // Search for list of objects for this time
     IOobjectList objects(dbPtr_(), dbPtr_().timeName());
@@ -57,34 +57,35 @@ void Foam::vtkPV3Foam::updateInformationFields
     //- Add volume fields to GUI
     addFields<GeometricField<scalar, patchType, meshType> >
     (
-        fieldSelection,
+        arraySelection,
         objects
     );
     addFields<GeometricField<vector, patchType, meshType> >
     (
-        fieldSelection,
+        arraySelection,
         objects
     );
     addFields<GeometricField<sphericalTensor, patchType, meshType> >
     (
-        fieldSelection,
+        arraySelection,
         objects
     );
     addFields<GeometricField<symmTensor, patchType, meshType> >
     (
-        fieldSelection,
+        arraySelection,
         objects
     );
     addFields<GeometricField<tensor, patchType, meshType> >
     (
-        fieldSelection,
+        arraySelection,
         objects
     );
 
+    // restore the currently enabled values
     setSelectedArrayEntries
     (
-        fieldSelection,
-        selectedArrayEntries
+        arraySelection,
+        selectedEntries
     );
 }
 

@@ -74,9 +74,17 @@ public:
     vtkSetMacro(CacheMesh, int);
     vtkGetMacro(CacheMesh, int);
 
+    // FOAM extrapolate internal values onto the walls
+    vtkSetMacro(ExtrapolateWalls, int);
+    vtkGetMacro(ExtrapolateWalls, int);
+
     // FOAM read sets control
     vtkSetMacro(IncludeSets, int);
     vtkGetMacro(IncludeSets, int);
+
+    // FOAM read zones control
+    vtkSetMacro(IncludeZones, int);
+    vtkGetMacro(IncludeZones, int);
 
     // FOAM patch names control
     vtkSetMacro(ShowPatchNames, int);
@@ -175,7 +183,9 @@ private:
     void removePatchNamesFromView();
 
     int CacheMesh;
+    int ExtrapolateWalls;
     int IncludeSets;
+    int IncludeZones;
     int ShowPatchNames;
 
     int UpdateGUI;

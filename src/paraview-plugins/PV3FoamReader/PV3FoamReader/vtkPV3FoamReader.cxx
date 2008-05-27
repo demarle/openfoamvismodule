@@ -40,10 +40,11 @@
 #include "vtkStringArray.h"
 #include "vtkUnstructuredGrid.h"
 #include "vtkUnstructuredGridAlgorithm.h"
+#include "vtkAlgorithmOutput.h"
+#include "vtkMultiBlockDataSet.h"
 
 // Foam includes
 #include "vtkPV3Foam.H"
-
 
 vtkCxxRevisionMacro(vtkPV3FoamReader, "$Revision: 1.2$");
 vtkStandardNewMacro(vtkPV3FoamReader);
@@ -51,8 +52,9 @@ vtkStandardNewMacro(vtkPV3FoamReader);
 
 vtkPV3FoamReader::vtkPV3FoamReader()
 {
+    Debug = 0;
     vtkDebugMacro(<<"Constructor");
-
+    
     SetNumberOfInputPorts(0);
 
     FileName  = NULL;
@@ -69,9 +71,9 @@ vtkPV3FoamReader::vtkPV3FoamReader()
     ShowPatchNames = 0;
 
     TimeSelection = vtkDataArraySelection::New();
-    PointFieldSelection = vtkDataArraySelection::New();
     RegionSelection = vtkDataArraySelection::New();
     VolFieldSelection = vtkDataArraySelection::New();
+    PointFieldSelection = vtkDataArraySelection::New();
     LagrangianFieldSelection = vtkDataArraySelection::New();
 
     // Setup the selection callback to modify this object when an array
@@ -113,6 +115,7 @@ vtkPV3FoamReader::vtkPV3FoamReader()
 vtkPV3FoamReader::~vtkPV3FoamReader()
 {
     vtkDebugMacro(<<"Deconstructor");
+    cout << "Destroy ~vtkPV3FoamReader\n";
 
     if (foamData_)
     {
@@ -128,12 +131,15 @@ vtkPV3FoamReader::~vtkPV3FoamReader()
     RegionSelection->RemoveObserver(this->SelectionObserver);
     VolFieldSelection->RemoveObserver(this->SelectionObserver);
     PointFieldSelection->RemoveObserver(this->SelectionObserver);
+    LagrangianFieldSelection->RemoveObserver(this->SelectionObserver);
+
     SelectionObserver->Delete();
 
     TimeSelection->Delete();
     RegionSelection->Delete();
     VolFieldSelection->Delete();
     PointFieldSelection->Delete();
+    LagrangianFieldSelection->Delete();
 }
 
 
@@ -145,19 +151,52 @@ int vtkPV3FoamReader::RequestInformation
     vtkInformationVector* outputVector
 )
 {
-    vtkDebugMacro(<<"Request Information");
+    vtkDebugMacro(<<"RequestInformation");
+    cout<<"REQUEST_INFORMATION\n";
 
     if (!FileName)
     {
         vtkErrorMacro("FileName has to be specified!");
         return 0;
     }
+    
+    {
+        vtkInformation* outputInfo = this->GetOutputPortInformation(0);
+        outputInfo->Print(cout);
+    
+        vtkMultiBlockDataSet* output = vtkMultiBlockDataSet::SafeDownCast
+        (
+            outputInfo->Get(vtkMultiBlockDataSet::DATA_OBJECT())
+        );
+        if (output) 
+        {
+            output->Print(cout);
+        }
+        else
+        {
+            cout << "no output\n";
+        }
+
+        cout << "GetExecutive:\n";
+
+        this->GetExecutive()->GetOutputInformation(0)->Print(cout);
+    }
+    
+    {
+        int nInfo = outputVector->GetNumberOfInformationObjects();
+        cout<<"requestInfo with " << nInfo << " items\n";
+        for (int i=0; i<nInfo; i++)
+        {
+            vtkInformation *info = outputVector->GetInformationObject(i);
+            info->Print(cout);
+        }
+    }
+    
+    vtkInformation *outInfo = outputVector->GetInformationObject(0);
 
     if (!foamData_)
     {
         vtkDebugMacro("RequestInformation: creating foamData_");
-
-        vtkInformation* outInfo = outputVector->GetInformationObject(0);
         vtkMultiBlockDataSet* output = vtkMultiBlockDataSet::SafeDownCast
         (
             outInfo->Get(vtkMultiBlockDataSet::DATA_OBJECT())
@@ -172,15 +211,43 @@ int vtkPV3FoamReader::RequestInformation
         foamData_->UpdateInformation();
     }
 
-    double* timeSteps = foamData_->timeSteps();
-    outputVector->GetInformationObject(0)->Set
+    int nTimeSteps = 0;
+    double* timeSteps = foamData_->timeSteps(nTimeSteps);
+
+    cout<<"Have nTimeSteps: " << nTimeSteps << "\n";
+
+    outInfo->Set
     (
         vtkStreamingDemandDrivenPipeline::TIME_STEPS(),
         timeSteps,
-        foamData_->numberOfTimeSteps()
+        nTimeSteps
     );
+
+    double timeRange[2];
+    if (nTimeSteps)
+    {
+        timeRange[0] = timeSteps[0];
+        timeRange[1] = timeSteps[nTimeSteps-1];
+
+        cout<<"nTimeSteps " << nTimeSteps << "\n";
+        cout<<"timeRange " << timeRange[0] << " -> " << timeRange[1] << "\n";
+
+//        for (int i = 0; i < nTimeSteps; ++i)
+//        {
+//            cout<<"step[" << i << "] = " << timeSteps[i] << "\n";
+//        }
+
+        outInfo->Set
+        (
+            vtkStreamingDemandDrivenPipeline::TIME_RANGE(),
+            timeRange,
+            2
+        );
+    }
+
     delete timeSteps;
 
+    cout<<"done RequestInformation\n";
     return 1;
 }
 
@@ -194,11 +261,22 @@ int vtkPV3FoamReader::RequestData
 )
 {
     vtkDebugMacro(<<"RequestData");
+    cout<<"REQUEST_DATA\n";
 
     if (!FileName)
     {
         vtkErrorMacro("FileName has to be specified!");
         return 0;
+    }
+    
+    {
+        int nInfo = outputVector->GetNumberOfInformationObjects();
+        cout<<"requestData with " << nInfo << " items\n";
+        for (int i=0; i<nInfo; i++)
+        {
+            vtkInformation *info = outputVector->GetInformationObject(i);
+            info->Print(cout);
+        }
     }
 
     vtkInformation* outInfo = outputVector->GetInformationObject(0);
@@ -206,6 +284,72 @@ int vtkPV3FoamReader::RequestData
     (
         outInfo->Get(vtkMultiBlockDataSet::DATA_OBJECT())
     );
+    
+#if 1
+    {
+        vtkInformation* outputInfo = this->GetOutputPortInformation(0);
+        outputInfo->Print(cout);
+    
+        vtkMultiBlockDataSet* output = vtkMultiBlockDataSet::SafeDownCast
+        (
+            outputInfo->Get(vtkMultiBlockDataSet::DATA_OBJECT())
+        );
+        if (output) 
+        {
+            output->Print(cout);
+        }
+        else
+        {
+            cout << "no output\n";
+        }
+        
+        vtkInformation* execInfo = this->GetExecutive()->GetOutputInformation(0);
+        execInfo->Print(cout);
+        
+        outInfo->Print(cout);
+        
+        vtkMultiBlockDataSet* dobj = vtkMultiBlockDataSet::SafeDownCast
+        (
+            outInfo->Get(vtkMultiBlockDataSet::DATA_OBJECT())
+        );
+        if (dobj) 
+        {
+            dobj->Print(cout);
+            
+            vtkInformation* dobjInfo = dobj->GetInformation();
+            dobjInfo->Print(cout);
+        }
+        else
+        {
+            cout << "no data_object\n";
+        }
+        
+
+    }
+#endif
+
+    if (outInfo->Has(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEPS()))
+    {
+        cout<<"Has UPDATE_TIME_STEPS\n";
+        cout<<"output->GetNumberOfBlocks() " << output->GetNumberOfBlocks() <<
+            "\n";
+
+        // Get the requested time step.
+        // We only supprt requests of a single time step
+        int nRequestedTimeSteps = outInfo->Length
+        (
+            vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEPS()
+        );
+        if (nRequestedTimeSteps >= 1)
+        {
+            double *requestedTimeSteps = outInfo->Get
+            (
+                vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEPS()
+            );
+
+            foamData_->setTime(requestedTimeSteps[0]);
+        }
+    }
 
     if
     (
@@ -225,6 +369,10 @@ int vtkPV3FoamReader::RequestData
         }
     }
     UpdateGUIOld = GetUpdateGUI();
+
+    cout<<"done RequestData\n";
+    cout<<"done output->GetNumberOfBlocks() "
+        << output->GetNumberOfBlocks() << "\n";
 
     return 1;
 }
@@ -284,7 +432,7 @@ void vtkPV3FoamReader::PrintSelf
     os<< indent << "Number of meshes: " << foamData_->numberOfMeshes() << "\n";
     os<< indent << "Number of nodes: " << foamData_->numberOfPoints() << "\n";
     os<< indent << "Number of cells: " << foamData_->numberOfCells() << "\n";
-    os<< indent << "Number of time steps: " << foamData_->numberOfTimeSteps()
+    os<< indent << "Number of available time steps: " << foamData_->numberOfAvailableTimes()
       << endl;
     os<< indent << "Time step range: "
       << this->TimeStepRange[0] << " - " << this->TimeStepRange[1]

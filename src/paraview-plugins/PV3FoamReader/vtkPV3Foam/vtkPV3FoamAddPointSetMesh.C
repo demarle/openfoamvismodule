@@ -34,7 +34,7 @@ Description
 
 // VTK includes
 #include "vtkPoints.h"
-#include "vtkUnstructuredGrid.h"
+#include "vtkPolyData.h"
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
@@ -42,7 +42,7 @@ void Foam::vtkPV3Foam::addPointSetMesh
 (
     const fvMesh& mesh,
     const pointSet& pSet,
-    vtkUnstructuredGrid* vtkMesh
+    vtkPolyData* vtkmesh
 )
 {
     if (debug)
@@ -50,15 +50,17 @@ void Foam::vtkPV3Foam::addPointSetMesh
         Info<< "entered add point set mesh" << endl;
     }
 
+    const pointField& meshPoints = mesh.points();
+
     vtkPoints *vtkpoints = vtkPoints::New();
-    vtkpoints->Allocate(mesh.nPoints());
+    vtkpoints->Allocate(pSet.size());
 
     forAllConstIter(pointSet, pSet, iter)
     {
-        vtkPV3FoamInsertNextPoint(vtkpoints, mesh.points()[iter.key()]);
+        vtkPV3FoamInsertNextPoint(vtkpoints, meshPoints[iter.key()]);
     }
 
-    vtkMesh->SetPoints(vtkpoints);
+    vtkmesh->SetPoints(vtkpoints);
     vtkpoints->Delete();
 }
 

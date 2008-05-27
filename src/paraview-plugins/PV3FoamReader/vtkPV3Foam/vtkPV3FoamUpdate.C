@@ -34,6 +34,8 @@ Description
 
 // VTK includes
 #include "vtkDataArraySelection.h"
+#include "vtkPolyData.h"
+#include "vtkUnstructuredGrid.h"
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
@@ -98,36 +100,39 @@ void Foam::vtkPV3Foam::updateVolFields
     const fvMesh& mesh = *meshPtr_;
 
     // Construct interpolation on the raw mesh
-    Foam::pointMesh pMesh(mesh);
+    pointMesh pMesh(mesh);
 
     // Search for list of objects for this time
-    Foam::IOobjectList objects(mesh, dbPtr_().timeName());
+    IOobjectList objects(mesh, dbPtr_().timeName());
+
+    vtkDataArraySelection* arraySelection = reader_->GetVolFieldSelection();
 
     // Convert volume fields
     if (debug)
     {
         Info<< "converting Foam volume fields" << endl;
     }
-    Foam::volPointInterpolation pInterp(mesh, pMesh);
+
+    volPointInterpolation pInterp(mesh, pMesh);
     convertVolFields<Foam::scalar>
     (
-        mesh, pInterp, objects, reader_->GetVolFieldSelection(), output
+        mesh, pInterp, objects, arraySelection, output
     );
     convertVolFields<Foam::vector>
     (
-        mesh, pInterp, objects, reader_->GetVolFieldSelection(), output
+        mesh, pInterp, objects, arraySelection, output
     );
     convertVolFields<Foam::sphericalTensor>
     (
-        mesh, pInterp, objects, reader_->GetVolFieldSelection(), output
+        mesh, pInterp, objects, arraySelection, output
     );
     convertVolFields<Foam::symmTensor>
     (
-        mesh, pInterp, objects, reader_->GetVolFieldSelection(), output
+        mesh, pInterp, objects, arraySelection, output
     );
     convertVolFields<Foam::tensor>
     (
-        mesh, pInterp, objects, reader_->GetVolFieldSelection(), output
+        mesh, pInterp, objects, arraySelection, output
     );
 }
 
@@ -145,7 +150,9 @@ void Foam::vtkPV3Foam::updatePointFields
     const fvMesh& mesh = *meshPtr_;
 
     // Search for list of objects for this time
-    Foam::IOobjectList objects(mesh, dbPtr_().timeName());
+    IOobjectList objects(mesh, dbPtr_().timeName());
+
+    vtkDataArraySelection* arraySelection = reader_->GetPointFieldSelection();
 
     // Convert point fields
     if (debug)
@@ -155,23 +162,23 @@ void Foam::vtkPV3Foam::updatePointFields
 
     convertPointFields<Foam::scalar>
     (
-        mesh, objects, reader_->GetPointFieldSelection(), output
+        mesh, objects, arraySelection, output
     );
     convertPointFields<Foam::vector>
     (
-        mesh, objects, reader_->GetPointFieldSelection(), output
+        mesh, objects, arraySelection, output
     );
     convertPointFields<Foam::sphericalTensor>
     (
-        mesh, objects, reader_->GetPointFieldSelection(), output
+        mesh, objects, arraySelection, output
     );
     convertPointFields<Foam::symmTensor>
     (
-        mesh, objects, reader_->GetPointFieldSelection(), output
+        mesh, objects, arraySelection, output
     );
     convertPointFields<Foam::tensor>
     (
-        mesh, objects, reader_->GetPointFieldSelection(), output
+        mesh, objects, arraySelection, output
     );
 }
 
@@ -190,12 +197,15 @@ void Foam::vtkPV3Foam::updateLagrangianFields
 
     // Search for list of objects for this time
     //- TODO - currently hard-coded to ONE cloud
-    Foam::IOobjectList lagrangianObjects
+    IOobjectList objects
     (
         mesh,
         dbPtr_().timeName(),
         "lagrangian"/cloudName_
     );
+
+    vtkDataArraySelection* arraySelection =
+        reader_->GetLagrangianFieldSelection();
 
     // Convert Lagrangian fields
     if (debug)
@@ -205,23 +215,23 @@ void Foam::vtkPV3Foam::updateLagrangianFields
 
     convertLagrangianFields<Foam::scalar>
     (
-        mesh, lagrangianObjects, reader_->GetLagrangianFieldSelection(), output
+        mesh, objects, arraySelection, output
     );
     convertLagrangianFields<Foam::vector>
     (
-        mesh, lagrangianObjects, reader_->GetLagrangianFieldSelection(), output
+        mesh, objects, arraySelection, output
     );
     convertLagrangianFields<Foam::sphericalTensor>
     (
-        mesh, lagrangianObjects, reader_->GetLagrangianFieldSelection(), output
+        mesh, objects, arraySelection, output
     );
     convertLagrangianFields<Foam::symmTensor>
     (
-        mesh, lagrangianObjects, reader_->GetLagrangianFieldSelection(), output
+        mesh, objects, arraySelection, output
     );
     convertLagrangianFields<Foam::tensor>
     (
-        mesh, lagrangianObjects, reader_->GetLagrangianFieldSelection(), output
+        mesh, objects, arraySelection, output
     );
 }
 

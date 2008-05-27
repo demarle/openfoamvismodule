@@ -35,7 +35,9 @@ Description
 #include "vtkPV3FoamInsertNextPoint.H"
 #include "IOobjectList.H"
 
-// Foam includes
+// VTK includes
+#include "vtkCellArray.h"
+#include "vtkPolyData.h"
 #include "vtkUnstructuredGrid.h"
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
@@ -43,18 +45,24 @@ Description
 void Foam::vtkPV3Foam::addLagrangianMesh
 (
     const fvMesh& mesh,
-    vtkUnstructuredGrid* vtkMesh
+    vtkPolyData *vtkmesh
 )
 {
     if (debug)
     {
-        Info<< "entered add Lagrangian mesh" << endl;
+        Info<< "entered add Lagrangian mesh with timePath "
+            << mesh.time().timePath()/"lagrangian" << endl;
     }
 
     fileNameList cloudDirs
     (
         readDir(mesh.time().timePath()/"lagrangian", fileName::DIRECTORY)
     );
+
+    if (debug && cloudDirs.size())
+    {
+        Info<< "check cloudDirs: " << cloudDirs << endl;
+    }
 
     bool foundCloud = false;
     forAll(cloudDirs, i)
@@ -74,6 +82,11 @@ void Foam::vtkPV3Foam::addLagrangianMesh
 
             Cloud<passiveParticle> parcels(mesh, cloudDirs[i], false);
 
+            if (debug)
+            {
+                Info<< "cloud with " << parcels.size() << " parcels" << endl;
+            }
+
             vtkPoints* vtkpoints = vtkPoints::New();
             vtkpoints->Allocate(parcels.size());
 
@@ -82,7 +95,7 @@ void Foam::vtkPV3Foam::addLagrangianMesh
                 vtkPV3FoamInsertNextPoint(vtkpoints, elmnt().position());
             }
 
-            vtkMesh->SetPoints(vtkpoints);
+            vtkmesh->SetPoints(vtkpoints);
             vtkpoints->Delete();
         }
     }

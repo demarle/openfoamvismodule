@@ -15,6 +15,7 @@
         </StringVectorProperty>
 
 <!-- Time info sent to animation controls (top of window) -->
+
         <DoubleVectorProperty
             name="TimestepValues"
             information_only="1">
@@ -50,10 +51,30 @@
                 name="bool"/>
         </IntVectorProperty>
 
+<!-- ExtrapolateWalls check box -->
+        <IntVectorProperty
+            name="ExtrapolateWalls"
+            command="SetExtrapolateWalls"
+            number_of_elements="1"
+            default_values="0">
+            <BooleanDomain
+                name="bool"/>
+        </IntVectorProperty>
+
 <!-- Include sets check box -->
         <IntVectorProperty
-            name="IncludeSets"
+            name="IncludeSets / Zones"
             command="SetIncludeSets"
+            number_of_elements="1"
+            default_values="0">
+            <BooleanDomain
+                name="bool"/>
+        </IntVectorProperty>
+
+<!-- Include zones check box -->
+        <IntVectorProperty
+            name="IncludeZones"
+            command="SetIncludeZones"
             number_of_elements="1"
             default_values="0">
             <BooleanDomain
@@ -70,7 +91,8 @@
         </IntVectorProperty>
 
 <!-- Time step edit box -->
-        <IntVectorProperty
+<!-- OLESEN
+<IntVectorProperty
             name="TimeStepRangeInfo"
             command="GetTimeStepRange"
             information_only="1">
@@ -91,6 +113,7 @@
                 </RequiredProperties>
             </IntRangeDomain>
         </IntVectorProperty>
+-->
 
 <!-- Time step limits boxes -->
 <!--        <IntVectorProperty
@@ -112,30 +135,6 @@
                 </RequiredProperties>
             </IntRangeDomain>
         </IntVectorProperty>-->
-
-<!-- Available times array -->
-        <StringVectorProperty
-            name="TimeArrayInfo"
-            information_only="1">
-            <ArraySelectionInformationHelper
-                attribute_name="Time"/>
-        </StringVectorProperty>
-        <StringVectorProperty
-            name="TimeStatus"
-            command="SetTimeArrayStatus"
-            number_of_elements="0"
-            repeat_command="1"
-            number_of_elements_per_command="2"
-            element_types="2 0"
-            information_property="TimeArrayInfo">
-            <ArraySelectionDomain
-                name="array_list">
-                <RequiredProperties>
-                    <Property name="TimeArrayInfo"
-                              function="ArrayList"/>
-                </RequiredProperties>
-            </ArraySelectionDomain>
-        </StringVectorProperty>
 
 <!-- Available regions array -->
         <StringVectorProperty
@@ -228,6 +227,30 @@
                 name="array_list">
                 <RequiredProperties>
                     <Property name="LagrangianFieldArrayInfo"
+                              function="ArrayList"/>
+                </RequiredProperties>
+            </ArraySelectionDomain>
+        </StringVectorProperty>
+
+<!-- Available times array -->
+        <StringVectorProperty
+            name="TimeArrayInfo"
+            information_only="1">
+            <ArraySelectionInformationHelper
+                attribute_name="Time"/>
+        </StringVectorProperty>
+        <StringVectorProperty
+            name="TimeStatus"
+            command="SetTimeArrayStatus"
+            number_of_elements="0"
+            repeat_command="1"
+            number_of_elements_per_command="2"
+            element_types="2 0"
+            information_property="TimeArrayInfo">
+            <ArraySelectionDomain
+                name="array_list">
+                <RequiredProperties>
+                    <Property name="TimeArrayInfo"
                               function="ArrayList"/>
                 </RequiredProperties>
             </ArraySelectionDomain>

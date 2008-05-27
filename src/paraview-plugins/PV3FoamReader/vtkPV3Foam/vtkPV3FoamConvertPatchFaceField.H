@@ -22,7 +22,7 @@ License
     along with OpenFOAM; if not, write to the Free Software Foundation,
     Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
-Class
+InClass
     vtkPV3Foam
 
 \*---------------------------------------------------------------------------*/
@@ -34,7 +34,7 @@ Class
 #include "vtkCellData.h"
 #include "vtkFloatArray.h"
 #include "vtkMultiBlockDataSet.h"
-#include "vtkUnstructuredGrid.h"
+#include "vtkPolyData.h"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -43,20 +43,21 @@ void Foam::vtkPV3Foam::convertPatchFaceField
 (
     const word& name,
     const Field<Type>& ptf,
-    const label regioni,
-    vtkMultiBlockDataSet* output
+    vtkMultiBlockDataSet* output,
+    const selectionInfo& selector,
+    const label datasetNo
 )
 {
-    vtkUnstructuredGrid* vtkMesh = vtkUnstructuredGrid::SafeDownCast
+    vtkPolyData* vtkmesh = vtkPolyData::SafeDownCast
     (
-        GetDataSetFromBlock(output, VOLUME, regioni)
+        GetDataSetFromBlock(output, selector, datasetNo)
     );
 
-    vtkFloatArray *cellTypes = vtkFloatArray::New();
-    cellTypes->SetNumberOfTuples(ptf.size());
-    cellTypes->SetNumberOfComponents(Type::nComponents);
-    cellTypes->Allocate(Type::nComponents*ptf.size());
-    cellTypes->SetName(name.c_str());
+    vtkFloatArray *cellData = vtkFloatArray::New();
+    cellData->SetNumberOfTuples(ptf.size());
+    cellData->SetNumberOfComponents(Type::nComponents);
+    cellData->Allocate(Type::nComponents*ptf.size());
+    cellData->SetName(name.c_str());
 
     float vec[Type::nComponents];
 
@@ -68,11 +69,11 @@ void Foam::vtkPV3Foam::convertPatchFaceField
             vec[d] = t[d];
         }
 
-        cellTypes->InsertTuple(i, vec);
+        cellData->InsertTuple(i, vec);
     }
 
-    vtkMesh->GetCellData()->AddArray(cellTypes);
-    cellTypes->Delete();
+    vtkmesh->GetCellData()->AddArray(cellData);
+    cellData->Delete();
 }
 
 
@@ -81,33 +82,35 @@ void Foam::vtkPV3Foam::convertPatchFaceField
 (
     const word& name,
     const Field<scalar>& psf,
-    const label regioni,
-    vtkMultiBlockDataSet* output
+    vtkMultiBlockDataSet* output,
+    const selectionInfo& selector,
+    const label datasetNo
 )
 {
-    vtkUnstructuredGrid* vtkMesh = vtkUnstructuredGrid::SafeDownCast
+    vtkPolyData* vtkmesh = vtkPolyData::SafeDownCast
     (
-        GetDataSetFromBlock(output, VOLUME, regioni)
+        GetDataSetFromBlock(output, selector, datasetNo)
     );
 
-    vtkFloatArray *cellScalars = vtkFloatArray::New();
-    cellScalars->SetNumberOfTuples(psf.size());
-    cellScalars->SetNumberOfComponents(1);
-    cellScalars->Allocate(psf.size());
-    cellScalars->SetName(name.c_str());
+    vtkFloatArray *cellData = vtkFloatArray::New();
+    cellData->SetNumberOfTuples(psf.size());
+    cellData->SetNumberOfComponents(1);
+    cellData->Allocate(psf.size());
+    cellData->SetName(name.c_str());
 
     forAll(psf, i)
     {
-        cellScalars->InsertComponent(i, 0, psf[i]);
+        cellData->InsertComponent(i, 0, psf[i]);
     }
 
-    vtkMesh->GetCellData()->AddArray(cellScalars);
-    if (!vtkMesh->GetCellData()->GetScalars())
+    vtkmesh->GetCellData()->AddArray(cellData);
+
+    if (!vtkmesh->GetCellData()->GetScalars())
     {
-        vtkMesh->GetCellData()->SetScalars(cellScalars);
+        vtkmesh->GetCellData()->SetScalars(cellData);
     }
 
-    cellScalars->Delete();
+    cellData->Delete();
 }
 
 

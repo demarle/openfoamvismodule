@@ -22,7 +22,7 @@ License
     along with OpenFOAM; if not, write to the Free Software Foundation,
     Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
-Class
+InClass
     vtkPV3Foam
 
 \*---------------------------------------------------------------------------*/
@@ -30,24 +30,62 @@ Class
 #ifndef vtkPV3FoamAddFields_H
 #define vtkPV3FoamAddFields_H
 
+// FOAM includes
+#include "SortableList.H"
+
 // VTK includes
 #include "vtkDataArraySelection.h"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 template<class GeoField>
-void Foam::vtkPV3Foam::addFields
+Foam::label Foam::vtkPV3Foam::addFields
 (
     vtkDataArraySelection *fieldSelection,
-    const IOobjectList& objects
+    const IOobjectList& objects,
+    const string& suffix
 )
 {
     IOobjectList fieldObjects(objects.lookupClass(GeoField::typeName));
 
+    SortableList<word> fields(fieldObjects.size());
+
+    label count = 0;
     forAllConstIter(IOobjectList, fieldObjects, iter)
     {
-        fieldSelection->AddArray(iter()->name().c_str());
+        fields[count++] = iter()->name();
     }
+
+    if (count)
+    {
+        fields.sort();
+
+        forAll(fields, fieldI)
+        {
+            if (debug)
+            {
+                Info<<"add region " << GeoField::typeName
+                    << ":" << fields[fieldI] << endl;
+            }
+
+            if (suffix.size())
+            {
+                fieldSelection->AddArray
+                (
+                    (fields[fieldI] + suffix).c_str()
+                );
+            }
+            else
+            {
+                fieldSelection->AddArray
+                (
+                    fields[fieldI].c_str()
+                );
+            }
+        }
+    }
+
+    return count;
 }
 
 

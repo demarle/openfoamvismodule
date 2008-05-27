@@ -22,7 +22,7 @@ License
     along with OpenFOAM; if not, write to the Free Software Foundation,
     Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
-Class
+InClass
     vtkPV3Foam
 
 \*---------------------------------------------------------------------------*/
@@ -40,20 +40,21 @@ void Foam::vtkPV3Foam::convertPatchPointField
 (
     const word& name,
     const Field<Type>& pptf,
-    const label regioni,
-    vtkMultiBlockDataSet* output
+    vtkMultiBlockDataSet* output,
+    const selectionInfo& selector,
+    const label datasetNo
 )
 {
-    vtkUnstructuredGrid* vtkMesh = vtkUnstructuredGrid::SafeDownCast
+    vtkPolyData* vtkmesh = vtkPolyData::SafeDownCast
     (
-        GetDataSetFromBlock(output, VOLUME, regioni)
+        GetDataSetFromBlock(output, selector, datasetNo)
     );
 
-    vtkFloatArray *pointTypes = vtkFloatArray::New();
-    pointTypes->SetNumberOfTuples(pptf.size());
-    pointTypes->SetNumberOfComponents(Type::nComponents);
-    pointTypes->Allocate(Type::nComponents*pptf.size());
-    pointTypes->SetName(name.c_str());
+    vtkFloatArray *pointData = vtkFloatArray::New();
+    pointData->SetNumberOfTuples(pptf.size());
+    pointData->SetNumberOfComponents(Type::nComponents);
+    pointData->Allocate(Type::nComponents*pptf.size());
+    pointData->SetName(name.c_str());
 
     float vec[Type::nComponents];
 
@@ -64,11 +65,11 @@ void Foam::vtkPV3Foam::convertPatchPointField
             vec[d] = pptf[i][d];
         }
 
-        pointTypes->InsertTuple(i, vec);
+        pointData->InsertTuple(i, vec);
     }
 
-    vtkMesh->GetPointData()->AddArray(pointTypes);
-    pointTypes->Delete();
+    vtkmesh->GetPointData()->AddArray(pointData);
+    pointData->Delete();
 }
 
 
@@ -77,33 +78,34 @@ void Foam::vtkPV3Foam::convertPatchPointField
 (
     const word& name,
     const Field<scalar>& ppsf,
-    const label regioni,
-    vtkMultiBlockDataSet* output
+    vtkMultiBlockDataSet* output,
+    const selectionInfo& selector,
+    const label datasetNo
 )
 {
-    vtkUnstructuredGrid* vtkMesh = vtkUnstructuredGrid::SafeDownCast
+    vtkPolyData* vtkmesh = vtkPolyData::SafeDownCast
     (
-        GetDataSetFromBlock(output, VOLUME, regioni)
+        GetDataSetFromBlock(output, selector, datasetNo)
     );
 
-    vtkFloatArray *pointScalars = vtkFloatArray::New();
-    pointScalars->SetNumberOfTuples(ppsf.size());
-    pointScalars->SetNumberOfComponents(1);
-    pointScalars->Allocate(ppsf.size());
-    pointScalars->SetName(name.c_str());
+    vtkFloatArray *pointData = vtkFloatArray::New();
+    pointData->SetNumberOfTuples(ppsf.size());
+    pointData->SetNumberOfComponents(1);
+    pointData->Allocate(ppsf.size());
+    pointData->SetName(name.c_str());
 
     for (int i=0; i<ppsf.size(); i++)
     {
-        pointScalars->InsertComponent(i, 0, ppsf[i]);
+        pointData->InsertComponent(i, 0, ppsf[i]);
     }
 
-    vtkMesh->GetPointData()->AddArray(pointScalars);
-    if (!vtkMesh->GetPointData()->GetScalars())
+    vtkmesh->GetPointData()->AddArray(pointData);
+    if (!vtkmesh->GetPointData()->GetScalars())
     {
-        vtkMesh->GetPointData()->SetScalars(pointScalars);
+        vtkmesh->GetPointData()->SetScalars(pointData);
     }
 
-    pointScalars->Delete();
+    pointData->Delete();
 }
 
 

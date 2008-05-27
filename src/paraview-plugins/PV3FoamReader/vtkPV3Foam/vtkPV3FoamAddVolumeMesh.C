@@ -48,7 +48,7 @@ Description
 void Foam::vtkPV3Foam::addVolumeMesh
 (
     const fvMesh& mesh,
-    vtkUnstructuredGrid* vtkMesh,
+    vtkUnstructuredGrid* vtkmesh,
     labelList& superCells
 )
 {
@@ -153,7 +153,7 @@ void Foam::vtkPV3Foam::addVolumeMesh
         Info<< "converting cells" << endl;
     }
 
-    vtkMesh->Allocate(mesh.nCells() + nAddCells);
+    vtkmesh->Allocate(mesh.nCells() + nAddCells);
 
     // Set counters for additional points and additional cells
     label api = 0, aci = 0;
@@ -175,7 +175,7 @@ void Foam::vtkPV3Foam::addVolumeMesh
             {
                 nodeIds[j] = cellShape[j];
             }
-            vtkMesh->InsertNextCell
+            vtkmesh->InsertNextCell
             (
                 VTK_TETRA,
                 4,
@@ -188,7 +188,7 @@ void Foam::vtkPV3Foam::addVolumeMesh
             {
                 nodeIds[j] = cellShape[j];
             }
-            vtkMesh->InsertNextCell
+            vtkmesh->InsertNextCell
             (
                 VTK_PYRAMID,
                 5,
@@ -201,7 +201,7 @@ void Foam::vtkPV3Foam::addVolumeMesh
             {
                 nodeIds[j] = cellShape[j];
             }
-            vtkMesh->InsertNextCell
+            vtkmesh->InsertNextCell
             (
                 VTK_WEDGE,
                 6,
@@ -219,7 +219,7 @@ void Foam::vtkPV3Foam::addVolumeMesh
             nodeIds[4] = cellShape[4];
             nodeIds[5] = cellShape[4];
 
-            vtkMesh->InsertNextCell
+            vtkmesh->InsertNextCell
             (
                 VTK_WEDGE,
                 6,
@@ -239,7 +239,7 @@ void Foam::vtkPV3Foam::addVolumeMesh
             nodeIds[6] = cellShape[5];
             nodeIds[7] = cellShape[6];
 
-            vtkMesh->InsertNextCell
+            vtkmesh->InsertNextCell
             (
                 VTK_HEXAHEDRON,
                 8,
@@ -252,7 +252,7 @@ void Foam::vtkPV3Foam::addVolumeMesh
             {
                 nodeIds[j] = cellShape[j];
             }
-            vtkMesh->InsertNextCell
+            vtkmesh->InsertNextCell
             (
                 VTK_HEXAHEDRON,
                 8,
@@ -306,7 +306,7 @@ void Foam::vtkPV3Foam::addVolumeMesh
                     nodeIds[2] = f[qpi + 2];
                     nodeIds[3] = f[qpi + 3];
                     nodeIds[4] = newVertexLabel;
-                    vtkMesh->InsertNextCell
+                    vtkmesh->InsertNextCell
                     (
                         VTK_PYRAMID,
                         5,
@@ -335,7 +335,7 @@ void Foam::vtkPV3Foam::addVolumeMesh
                     nodeIds[1] = f[qpi + 1];
                     nodeIds[2] = f[qpi + 2];
                     nodeIds[3] = newVertexLabel;
-                    vtkMesh->InsertNextCell
+                    vtkmesh->InsertNextCell
                     (
                         VTK_TETRA,
                         4,
@@ -348,7 +348,7 @@ void Foam::vtkPV3Foam::addVolumeMesh
         }
     }
 
-    vtkMesh->SetPoints(vtkpoints);
+    vtkmesh->SetPoints(vtkpoints);
     vtkpoints->Delete();
 }
 

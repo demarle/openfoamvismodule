@@ -34,8 +34,8 @@ Description
 
 // VTK includes
 #include "vtkPoints.h"
-#include "vtkPolygon.h"
-#include "vtkUnstructuredGrid.h"
+#include "vtkPolyData.h"
+#include "vtkCellArray.h"
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
@@ -43,7 +43,7 @@ void Foam::vtkPV3Foam::addFaceSetMesh
 (
     const fvMesh& mesh,
     const faceSet& fSet,
-    vtkUnstructuredGrid* vtkMesh
+    vtkPolyData* vtkmesh
 )
 {
     if (debug)
@@ -53,50 +53,49 @@ void Foam::vtkPV3Foam::addFaceSetMesh
 
     // Construct primitivePatch of faces in fSet.
 
-    const faceList& faces = mesh.faces();
-    faceList setFaces(fSet.size());
-    label setFaceI = 0;
+    const faceList& meshFaces = mesh.faces();
+    faceList patchFaces(fSet.size());
+    label faceI = 0;
     forAllConstIter(faceSet, fSet, iter)
     {
-        setFaces[setFaceI++] = faces[iter.key()];
+        patchFaces[faceI++] = meshFaces[iter.key()];
     }
-    primitiveFacePatch fp(setFaces, mesh.points());
+    primitiveFacePatch p(patchFaces, mesh.points());
 
 
-    // Add face points
+    // The balance of this routine should be identical to addPatchMesh
+
+    // Convert Foam mesh vertices to VTK
+    const pointField& points = p.localPoints();
 
     vtkPoints *vtkpoints = vtkPoints::New();
-    vtkpoints->Allocate(fp.size());
-
-    forAll(fp.localPoints(), i)
+    vtkpoints->Allocate(points.size());
+    forAll(points, i)
     {
-        vtkPV3FoamInsertNextPoint(vtkpoints, fp.localPoints()[i]);
+        vtkPV3FoamInsertNextPoint(vtkpoints, points[i]);
     }
-
+    vtkmesh->SetPoints(vtkpoints);
+    vtkpoints->Delete();
 
     // Add faces as polygons
+    const faceList& faces = p.localFaces();
 
-    vtkMesh->Allocate(fp.size());
-
-    forAll(fp.localFaces(), faceI)
+    vtkCellArray* vtkcells = vtkCellArray::New();
+    vtkcells->Allocate(p.size());
+    forAll(faces, faceI)
     {
-        const face& f = fp.localFaces()[faceI];
+        const face& f = faces[faceI];
         vtkIdType nodeIds[f.size()];
-        for (int j=0; j<f.size(); j++)
+
+        forAll (f, fp)
         {
-            nodeIds[j] = f[j];
+            nodeIds[fp] = f[fp];
         }
-        vtkMesh->InsertNextCell
-        (
-            VTK_POLYGON,
-            f.size(),
-            nodeIds
-        );
+        vtkcells->InsertNextCell(f.size(), nodeIds);
     }
 
-    vtkMesh->SetPoints(vtkpoints);
-    vtkpoints->Delete();
+    vtkmesh->SetPolys(vtkcells);
+    vtkcells->Delete();
 }
-
 
 // ************************************************************************* //

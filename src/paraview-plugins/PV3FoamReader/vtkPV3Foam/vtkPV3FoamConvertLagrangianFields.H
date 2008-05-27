@@ -22,7 +22,7 @@ License
     along with OpenFOAM; if not, write to the Free Software Foundation,
     Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
-Class
+InClass
     vtkPV3Foam
 
 \*---------------------------------------------------------------------------*/
@@ -41,11 +41,10 @@ void Foam::vtkPV3Foam::convertLagrangianFields
     vtkMultiBlockDataSet* output
 )
 {
-    if (!lagrangianDataSize_)
-    {
-        return;
-    }
-    if (!selectedRegions_[LAGRANGIAN])
+    const selectionInfo& selector = selectInfoLagrangian_;
+    const label datasetId = 0;
+
+    if (!selector.size())
     {
         return;
     }
@@ -58,9 +57,9 @@ void Foam::vtkPV3Foam::convertLagrangianFields
         )
     );
 
-    label nSelectedFields = fieldSelection->GetNumberOfArrays();
+    label nFields = fieldSelection->GetNumberOfArrays();
 
-    for (label i=0; i<nSelectedFields; i++)
+    for (label i=0; i<nFields; i++)
     {
         if (fieldSelection->GetArraySetting(i))
         {
@@ -68,12 +67,6 @@ void Foam::vtkPV3Foam::convertLagrangianFields
 
             if (fieldObjects.found(fieldName))
             {
-                if (debug)
-                {
-                    Info<< "converting Foam Lagrangian field: " << fieldName
-                        << endl;
-                }
-
                 IOField<Type> iotf
                 (
                     IOobject
@@ -86,7 +79,7 @@ void Foam::vtkPV3Foam::convertLagrangianFields
                     )
                 );
 
-                convertLagrangianField(iotf, output);
+                convertLagrangianField(iotf, output, selector, datasetId);
             }
         }
     }
@@ -97,19 +90,21 @@ template<class Type>
 void Foam::vtkPV3Foam::convertLagrangianField
 (
     const IOField<Type>& tf,
-    vtkMultiBlockDataSet* output
+    vtkMultiBlockDataSet* output,
+    const selectionInfo& selector,
+    const label datasetNo
 )
 {
-    vtkUnstructuredGrid* lagrangianMesh = vtkUnstructuredGrid::SafeDownCast
+    vtkPolyData* vtkmesh = vtkPolyData::SafeDownCast
     (
-        GetDataSetFromBlock(output, LAGRANGIAN, 0)
+        GetDataSetFromBlock(output, selector, datasetNo)
     );
 
-    vtkFloatArray *pointTypes = vtkFloatArray::New();
-    pointTypes->SetNumberOfTuples(tf.size());
-    pointTypes->SetNumberOfComponents(Type::nComponents);
-    pointTypes->Allocate(Type::nComponents*tf.size());
-    pointTypes->SetName(tf.name().c_str());
+    vtkFloatArray *pointData = vtkFloatArray::New();
+    pointData->SetNumberOfTuples(tf.size());
+    pointData->SetNumberOfComponents(Type::nComponents);
+    pointData->Allocate(Type::nComponents*tf.size());
+    pointData->SetName(tf.name().c_str());
 
     if (debug)
     {
@@ -127,11 +122,11 @@ void Foam::vtkPV3Foam::convertLagrangianField
             vec[d] = tf[i][d];
         }
 
-        pointTypes->InsertTuple(i, vec);
+        pointData->InsertTuple(i, vec);
     }
 
-    lagrangianMesh->GetPointData()->AddArray(pointTypes);
-    pointTypes->Delete();
+    vtkmesh->GetPointData()->AddArray(pointData);
+    pointData->Delete();
 }
 
 
@@ -139,19 +134,21 @@ template<>
 void Foam::vtkPV3Foam::convertLagrangianField
 (
     const IOField<scalar>& sf,
-    vtkMultiBlockDataSet* output
+    vtkMultiBlockDataSet* output,
+    const selectionInfo& selector,
+    const label datasetNo
 )
 {
-    vtkUnstructuredGrid* lagrangianMesh = vtkUnstructuredGrid::SafeDownCast
+    vtkPolyData* vtkmesh = vtkPolyData::SafeDownCast
     (
-        GetDataSetFromBlock(output, LAGRANGIAN, 0)
+        GetDataSetFromBlock(output, selector, datasetNo)
     );
 
-    vtkFloatArray *pointScalars = vtkFloatArray::New();
-    pointScalars->SetNumberOfTuples(sf.size());
-    pointScalars->SetNumberOfComponents(1);
-    pointScalars->Allocate(sf.size());
-    pointScalars->SetName(sf.name().c_str());
+    vtkFloatArray *pointData = vtkFloatArray::New();
+    pointData->SetNumberOfTuples(sf.size());
+    pointData->SetNumberOfComponents(1);
+    pointData->Allocate(sf.size());
+    pointData->SetName(sf.name().c_str());
 
     if (debug)
     {
@@ -162,16 +159,16 @@ void Foam::vtkPV3Foam::convertLagrangianField
 
     for (int i=0; i<sf.size(); i++)
     {
-        pointScalars->InsertComponent(i, 0, sf[i]);
+        pointData->InsertComponent(i, 0, sf[i]);
     }
 
-    lagrangianMesh->GetPointData()->AddArray(pointScalars);
-    if (!lagrangianMesh->GetPointData()->GetScalars())
+    vtkmesh->GetPointData()->AddArray(pointData);
+    if (!vtkmesh->GetPointData()->GetScalars())
     {
-        lagrangianMesh->GetPointData()->SetScalars(pointScalars);
+        vtkmesh->GetPointData()->SetScalars(pointData);
     }
 
-    pointScalars->Delete();
+    pointData->Delete();
 }
 
 

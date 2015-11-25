@@ -24,6 +24,9 @@ License
 Class
     Foam::runTimePostProcessing
 
+Group
+    grpGraphicsFunctionObjects
+
 Description
     Function object to generate images during run-time.
 

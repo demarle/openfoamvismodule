@@ -407,19 +407,7 @@ void Foam::fieldVisualisationBase::addGlyphs
     }
     else
     {
-        WarningIn
-        (
-            "void Foam::fieldVisualisationBase::addGlyphs"
-            "("
-                "const scalar, "
-                "const word&, "
-                "const word&, "
-                "const scalar, "
-                "vtkPolyData*, "
-                "vtkActor*, "
-                "vtkRenderer*"
-            ") const"
-        )
+        WarningInFunction
             << "Glyphs can only be added to " << pTraits<scalar>::typeName
             << " and " << pTraits<vector>::typeName << " fields. "
             << " Field " << scaleFieldName << " has " << nComponents

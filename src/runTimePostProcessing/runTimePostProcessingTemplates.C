@@ -37,15 +37,7 @@ void Foam::runTimePostProcessing::readObjects
     {
         if (!iter().isDict())
         {
-            FatalIOErrorIn
-            (
-                "void Foam::runTimePostProcessing::readObjects"
-                "("
-                    "const dictionary&, "
-                    "PtrList<Type>&"
-                ")",
-                dict
-            )
+            FatalIOErrorInFunction(dict)
                 << dict.dictName()
                 << " objects must be specified in dictionary format"
                 << exit(FatalIOError);

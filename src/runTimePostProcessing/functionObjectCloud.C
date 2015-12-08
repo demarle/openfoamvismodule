@@ -102,14 +102,7 @@ void Foam::functionObjectCloud::addGeometryToScene
 
     if (fName.empty())
     {
-        WarningIn
-        (
-            "void Foam::functionObjectCloud::addToScene"
-            "("
-                "const scalar, "
-                "vtkRenderer*"
-            ")"
-        )
+        WarningInFunction
             << "Unable to find function object " << functionObject_
             << " output for field " << fieldName_
             << ". Line will not be processed"

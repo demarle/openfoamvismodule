@@ -64,15 +64,7 @@ void Foam::geometrySurface::addGeometryToScene
 {
     if (representation_ == rtGlyph)
     {
-        FatalErrorIn
-        (
-            "void Foam::geometrySurface::addGeometryToScene"
-            "("
-                "const label, "
-                "vtkRenderer*, "
-                "const fileName&"
-            ") const"
-        )
+        FatalErrorInFunction
             << "Glyph representation not available for " << typeName
             << "object" << exit(FatalError);
     }

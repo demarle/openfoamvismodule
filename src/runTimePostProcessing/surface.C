@@ -205,16 +205,8 @@ Foam::autoPtr<Foam::surface> Foam::surface::New
 
     if (cstrIter == dictionaryConstructorTablePtr_->end())
     {
-        FatalErrorIn
-        (
-            "Foam::autoPtr<Foam::surface> Foam::surface::New"
-            "("
-                "const runTimePostProcessing&, "
-                "const dictionary&, "
-                "const HashPtrTable<DataEntry<vector>, word>&, "
-                "const word&"
-            ")"
-        )   << "Unknown surface type "
+        FatalErrorInFunction
+            << "Unknown surface type "
             << surfaceType << nl << nl
             << "Valid surface types are:" << endl
             << dictionaryConstructorTablePtr_->sortedToc()

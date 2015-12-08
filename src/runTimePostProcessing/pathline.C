@@ -182,16 +182,8 @@ Foam::autoPtr<Foam::pathline> Foam::pathline::New
 
     if (cstrIter == dictionaryConstructorTablePtr_->end())
     {
-        FatalErrorIn
-        (
-            "Foam::autoPtr<Foam::pathline> Foam::pathline::New"
-            "("
-                "const runTimePostProcessing&, "
-                "const dictionary&, "
-                "const HashPtrTable<DataEntry<vector>, word>&, "
-                "const word&"
-            ")"
-        )   << "Unknown pathline type "
+        FatalErrorInFunction
+            << "Unknown pathline type "
             << pathlineType << nl << nl
             << "Valid pathline types are:" << endl
             << dictionaryConstructorTablePtr_->sortedToc()

@@ -102,11 +102,7 @@ void Foam::runTimePostProcessing::read(const dictionary& dict)
     {
         if (!iter().isDict())
         {
-            FatalIOErrorIn
-            (
-                "void Foam::runTimePostProcessing::read(const dictionary&)",
-                textDict
-            )
+            FatalIOErrorInFunction(textDict)
                 << "text must be specified in dictionary format"
                 << exit(FatalIOError);
         }

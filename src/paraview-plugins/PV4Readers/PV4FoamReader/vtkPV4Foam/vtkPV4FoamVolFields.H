@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2014 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2016 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -46,7 +46,7 @@ InClass
 template<class Type>
 void Foam::vtkPV4Foam::convertVolField
 (
-    const PtrList<PrimitivePatchInterpolation<primitivePatch> >& ppInterpList,
+    const PtrList<PrimitivePatchInterpolation<primitivePatch>>& ppInterpList,
     const GeometricField<Type, fvPatchField, volMesh>& tf,
     const bool interpFields,
     vtkMultiBlockDataSet* output
@@ -56,7 +56,7 @@ void Foam::vtkPV4Foam::convertVolField
     const polyBoundaryMesh& patches = mesh.boundaryMesh();
 
     // Interpolated field (demand driven)
-    autoPtr<GeometricField<Type, pointPatchField, pointMesh> > ptfPtr;
+    autoPtr<GeometricField<Type, pointPatchField, pointMesh>> ptfPtr;
     if (interpFields)
     {
         if (debug)
@@ -136,7 +136,7 @@ void Foam::vtkPV4Foam::convertVolField
         {
             fvPatch p(ptf.patch().patch(), mesh.boundary());
 
-            tmp<Field<Type> > tpptf
+            tmp<Field<Type>> tpptf
             (
                 fvPatchField<Type>(p, tf).patchInternalField()
             );
@@ -361,7 +361,7 @@ template<class Type>
 void Foam::vtkPV4Foam::convertVolFieldBlock
 (
     const GeometricField<Type, fvPatchField, volMesh>& tf,
-    autoPtr<GeometricField<Type, pointPatchField, pointMesh> >& ptfPtr,
+    autoPtr<GeometricField<Type, pointPatchField, pointMesh>>& ptfPtr,
     vtkMultiBlockDataSet* output,
     const arrayRange& range,
     const List<polyDecomp>& decompLst

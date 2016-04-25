@@ -488,7 +488,7 @@ class vtkPVFoam
             template<class Type>
             void convertVolField
             (
-                const PtrList<PrimitivePatchInterpolation<primitivePatch> >&,
+                const PtrList<PrimitivePatchInterpolation<primitivePatch>>&,
                 const GeometricField<Type, fvPatchField, volMesh>&,
                 const bool interpFields,
                 vtkMultiBlockDataSet* output
@@ -510,7 +510,7 @@ class vtkPVFoam
             void convertDimFields
             (
                 const fvMesh&,
-                const PtrList<PrimitivePatchInterpolation<primitivePatch> >&,
+                const PtrList<PrimitivePatchInterpolation<primitivePatch>>&,
                 const IOobjectList&,
                 const bool interpFields,
                 vtkMultiBlockDataSet* output

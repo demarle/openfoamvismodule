@@ -44,7 +44,7 @@ InClass
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 template<class Type>
-void Foam::vtkPV4Foam::convertVolField
+void Foam::vtkPVFoam::convertVolField
 (
     const PtrList<PrimitivePatchInterpolation<primitivePatch>>& ppInterpList,
     const GeometricField<Type, fvPatchField, volMesh>& tf,
@@ -70,7 +70,6 @@ void Foam::vtkPV4Foam::convertVolField
             volPointInterpolation::New(mesh).interpolate(tf).ptr()
         );
     }
-
 
     // Convert activated internalMesh regions
     convertVolFieldBlock
@@ -126,7 +125,7 @@ void Foam::vtkPV4Foam::convertVolField
 
         if
         (
-            isType<emptyFvPatchField<Type> >(ptf)
+            isType<emptyFvPatchField<Type>>(ptf)
          ||
             (
                 reader_->GetExtrapolatePatches()
@@ -262,10 +261,10 @@ void Foam::vtkPV4Foam::convertVolField
 
 
 template<class Type>
-void Foam::vtkPV4Foam::convertVolFields
+void Foam::vtkPVFoam::convertVolFields
 (
     const fvMesh& mesh,
-    const PtrList<PrimitivePatchInterpolation<primitivePatch> >& ppInterpList,
+    const PtrList<PrimitivePatchInterpolation<primitivePatch>>& ppInterpList,
     const IOobjectList& objects,
     const bool interpFields,
     vtkMultiBlockDataSet* output
@@ -297,10 +296,10 @@ void Foam::vtkPV4Foam::convertVolFields
 
 
 template<class Type>
-void Foam::vtkPV4Foam::convertDimFields
+void Foam::vtkPVFoam::convertDimFields
 (
     const fvMesh& mesh,
-    const PtrList<PrimitivePatchInterpolation<primitivePatch> >& ppInterpList,
+    const PtrList<PrimitivePatchInterpolation<primitivePatch>>& ppInterpList,
     const IOobjectList& objects,
     const bool interpFields,
     vtkMultiBlockDataSet* output
@@ -327,7 +326,7 @@ void Foam::vtkPV4Foam::convertDimFields
         IOobject io(dimFld);
         io.readOpt() = IOobject::NO_READ;
 
-        PtrList<fvPatchField<Type> > patchFields(mesh.boundary().size());
+        PtrList<fvPatchField<Type>> patchFields(mesh.boundary().size());
         forAll(patchFields, patchI)
         {
             patchFields.set

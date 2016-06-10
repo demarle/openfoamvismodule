@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2015 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2015-2016 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -124,7 +124,7 @@ void Foam::functionObjectSurface::addGeometryToScene
     }
     else
     {
-        if ((colourBy_ == cbField) && (fName.ext() == "vtk"))
+        if (fName.ext() == "vtk")
         {
             vtkSmartPointer<vtkPolyDataReader> surf =
                 vtkSmartPointer<vtkPolyDataReader>::New();
@@ -147,7 +147,9 @@ void Foam::functionObjectSurface::addGeometryToScene
         }
         else
         {
-            geometrySurface::addGeometryToScene(position, renderer);
+            WarningInFunction
+                << "Only VTK file types are supported"
+                << endl;
         }
     }
 }

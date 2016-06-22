@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2015 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2015-2016 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -158,7 +158,8 @@ protected:
             const scalar position,
             const word& colourFieldName,
             vtkPolyDataMapper* mapper,
-            vtkRenderer* renderer
+            vtkRenderer* renderer,
+            vtkPolyData* pData
         ) const;
 
         //- Add glyphs

@@ -61,7 +61,7 @@ IF(("${PARAVIEW_VERSION_MAJOR}" LESS 5) AND ("${PARAVIEW_VERSION_MINOR}" LESS 4)
         SERVER_MANAGER_SOURCES vtkPVFoamReader.cxx
         GUI_INTERFACES ${IFACES}
         GUI_SOURCES pqPVFoamReaderPanel.cxx
-            ${MOC_SRCS} ${UI_SRCS} ${IFACE_SRCS}
+        ${MOC_SRCS} ${UI_SRCS} ${IFACE_SRCS}
         GUI_RESOURCE_FILES PVFoamReader.xml
     )
 ELSE()
@@ -71,7 +71,7 @@ ELSE()
         SERVER_MANAGER_SOURCES vtkPVFoamReader.cxx
         GUI_INTERFACES ${IFACES}
         GUI_SOURCES pqPVFoamReaderPanel.cxx
-            ${MOC_SRCS} ${UI_SRCS} ${IFACE_SRCS}
+        ${MOC_SRCS} ${UI_SRCS} ${IFACE_SRCS}
     )
 ENDIF()
 

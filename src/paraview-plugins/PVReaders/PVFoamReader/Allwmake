@@ -15,10 +15,11 @@ set -x
 if [ -d "$ParaView_DIR" -a -r "$ParaView_DIR" ]
 then
     wmake $targetType vtkPVFoam
-    sourceDir=$PWD/PVFoamReader
 
     if [ "$targetType" != "objects" ]
     then
+        sourceDir=$PWD/PVFoamReader
+
         # Where are any generated files stored?
         findObjectDir $sourceDir
         (

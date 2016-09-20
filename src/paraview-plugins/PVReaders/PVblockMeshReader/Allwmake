@@ -7,7 +7,7 @@ cd ${0%/*} || exit 1    # Run from this directory
 # Source the wmake functions
 . $WM_DIR/scripts/wmakeFunctions
 
-# ensure CMake gets the correct C/C++ compilers
+# Ensure CMake gets the correct C/C++ compilers
 [ -n "$WM_CC" ]  && export CC="$WM_CC"
 [ -n "$WM_CXX" ] && export CXX="$WM_CXX"
 
@@ -15,10 +15,11 @@ set -x
 if [ -d "$ParaView_DIR" -a -r "$ParaView_DIR" ]
 then
     wmake $targetType vtkPVblockMesh
-    sourceDir=$PWD/PVblockMeshReader
 
     if [ "$targetType" != "objects" ]
     then
+        sourceDir=$PWD/PVblockMeshReader
+
         # Where are any generated files stored?
         findObjectDir $sourceDir
         (

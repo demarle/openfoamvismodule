@@ -1,4 +1,4 @@
-# create a plugin that adds a reader to the ParaView GUI
+# Create a plugin that adds a reader to the ParaView GUI
 # it is added in the file dialog when doing opens/saves.
 
 # The qrc file is processed by Qt's resource compiler (rcc)

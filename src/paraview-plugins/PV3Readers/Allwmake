@@ -41,19 +41,25 @@ canBuildPlugin()
 
 
 # -----------------------------------------------------------------------------
+
 case "$ParaView_VERSION" in
 3*)
     if canBuildPlugin
     then
-    (
-        # ensure CMake gets the correct C/C++ compilers
-        [ -n "$WM_CC" ]  && export CC="$WM_CC"
+        [ -n "$PV_PLUGIN_PATH" ] || {
+            echo "$0 : PV_PLUGIN_PATH not valid - it is unset"
+            exit 1
+        }
+
+        # Ensure CMake gets the correct C/C++ compilers
+        [ -n "$WM_CC" ] && export CC="$WM_CC"
         [ -n "$WM_CXX" ] && export CXX="$WM_CXX"
 
         wmake $targetType vtkPV3Readers
         PV3blockMeshReader/Allwmake $targetType $*
         PV3FoamReader/Allwmake $targetType $*
-    )
+    else
+        echo "ERROR: ParaView not found in $ParaView_DIR"
     fi
     ;;
 *)
@@ -63,5 +69,6 @@ case "$ParaView_VERSION" in
     echo
     ;;
 esac
+
 
 #------------------------------------------------------------------------------

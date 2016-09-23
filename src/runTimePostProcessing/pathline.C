@@ -75,14 +75,14 @@ const Foam::NamedEnum
 
 void Foam::functionObjects::runTimePostPro::pathline::addLines
 (
-    const label frameI,
+    const label framei,
     vtkActor* actor,
     vtkPolyData* data
 ) const
 {
     geometryBase::initialiseActor(actor);
 
-    vector colour = lineColour_->value(frameI);
+    vector colour = lineColour_->value(framei);
     actor->GetProperty()->SetColor(colour[0], colour[1], colour[2]);
 
     vtkPolyDataMapper* mapper =
@@ -141,7 +141,7 @@ Foam::functionObjects::runTimePostPro::pathline::pathline
         representationTypeNames.read(dict.lookup("representation"))
     ),
     tubeRadius_(0.0),
-    lineColour_(NULL)
+    lineColour_(nullptr)
 {
     if (dict.found("lineColour"))
     {

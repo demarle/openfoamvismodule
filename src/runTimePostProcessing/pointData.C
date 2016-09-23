@@ -72,7 +72,7 @@ const Foam::NamedEnum
 
 void Foam::functionObjects::runTimePostPro::pointData::addPoints
 (
-    const label frameI,
+    const label framei,
     vtkActor* actor,
     vtkPolyDataMapper* mapper,
     vtkPolyData* data
@@ -80,7 +80,7 @@ void Foam::functionObjects::runTimePostPro::pointData::addPoints
 {
     geometryBase::initialiseActor(actor);
 
-    vector colour = pointColour_->value(frameI);
+    vector colour = pointColour_->value(framei);
     actor->GetProperty()->SetColor(colour[0], colour[1], colour[2]);
 
     switch (representation_)
@@ -109,7 +109,7 @@ Foam::functionObjects::runTimePostPro::pointData::pointData
         representationTypeNames.read(dict.lookup("representation"))
     ),
     maxGlyphLength_(readScalar(dict.lookup("maxGlyphLength"))),
-    pointColour_(NULL)
+    pointColour_(nullptr)
 {
     if (dict.found("pointColour"))
     {

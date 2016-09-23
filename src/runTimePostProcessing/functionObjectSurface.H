@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2015 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2015-2016 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -22,17 +22,18 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::functionObjectSurface
+    Foam::functionObjects::runTimePostPro::functionObjectSurface
 
 Description
+    Visualisation of surface data from function object output
 
 SourceFiles
-    functionObjectSurface.C
+    functionObjectfunctionObjectSurface.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef functionObjectSurface_H
-#define functionObjectSurface_H
+#ifndef functionObjects_runTimePostPro_functionObjectSurface_H
+#define functionObjects_runTimePostPro_functionObjectSurface_H
 
 #include "geometrySurface.H"
 #include "fieldVisualisationBase.H"
@@ -40,6 +41,10 @@ SourceFiles
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
+{
+namespace functionObjects
+{
+namespace runTimePostPro
 {
 
 /*---------------------------------------------------------------------------*\
@@ -58,10 +63,10 @@ private:
     // Private Member Functions
 
         //- Disallow default bitwise copy construct
-        functionObjectSurface(const functionObjectSurface&);
+        functionObjectSurface(const functionObjectSurface&) = delete;
 
         //- Disallow default bitwise assignment
-        void operator=(const functionObjectSurface&);
+        void operator=(const functionObjectSurface&) = delete;
 
 
 protected:
@@ -75,7 +80,7 @@ protected:
 public:
 
     //- Run-time type information
-    TypeName("functionObject");
+    TypeName("functionObjectSurface");
 
 
     // Constructors
@@ -95,7 +100,7 @@ public:
 
     // Member Functions
 
-        //- Add surface(s) to scene
+        //- Add functionObjectSurface(s) to scene
         virtual void addGeometryToScene
         (
             const scalar position,
@@ -106,6 +111,8 @@ public:
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
+} // End namespace runTimePostPro
+} // End namespace functionObjects
 } // End namespace Foam
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

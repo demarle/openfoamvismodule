@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2015 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2015-2016 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,14 +25,15 @@ Class
     Foam::geometrySurface
 
 Description
+    Visualisation of surface geometry data
 
 SourceFiles
     geometrySurface.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef geometrySurface_H
-#define geometrySurface_H
+#ifndef functionObjects_runTimePostPro_geometrySurface_H
+#define functionObjects_runTimePostPro_geometrySurface_H
 
 #include "surface.H"
 
@@ -42,9 +43,13 @@ class vtkPolyData;
 
 namespace Foam
 {
+namespace functionObjects
+{
+namespace runTimePostPro
+{
 
 /*---------------------------------------------------------------------------*\
-                        Class geometrySurface Declaration
+                       Class geometrySurface Declaration
 \*---------------------------------------------------------------------------*/
 
 class geometrySurface
@@ -56,10 +61,10 @@ private:
     // Private Member Functions
 
         //- Disallow default bitwise copy construct
-        geometrySurface(const geometrySurface&);
+        geometrySurface(const geometrySurface&) = delete;
 
         //- Disallow default bitwise assignment
-        void operator=(const geometrySurface&);
+        void operator=(const geometrySurface&) = delete;
 
 
 protected:
@@ -127,6 +132,8 @@ public:
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
+} // End namespace runTimePostPro
+} // End namespace functionObjects
 } // End namespace Foam
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

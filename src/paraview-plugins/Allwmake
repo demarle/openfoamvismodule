@@ -10,7 +10,6 @@ export WM_CONTINUE_ON_ERROR=true
 #
 # There are several prerequisites for building a plugin
 #
-#set -x
 canBuildPlugin()
 {
     [ -d "$ParaView_DIR" -a -r "$ParaView_DIR" ] || {

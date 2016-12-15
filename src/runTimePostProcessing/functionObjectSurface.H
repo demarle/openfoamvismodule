@@ -36,7 +36,7 @@ SourceFiles
 #define functionObjects_runTimePostPro_functionObjectSurface_H
 
 #include "geometrySurface.H"
-#include "fieldVisualisationBase.H"
+#include "functionObjectBase.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -54,9 +54,8 @@ namespace runTimePostPro
 class functionObjectSurface
 :
     public geometrySurface,
-    public fieldVisualisationBase
+    public functionObjectBase
 {
-
 
 private:
 
@@ -67,14 +66,6 @@ private:
 
         //- Disallow default bitwise assignment
         void operator=(const functionObjectSurface&) = delete;
-
-
-protected:
-
-    // Protected data
-
-        //- Name of function object result to render
-        word functionObject_;
 
 
 public:
@@ -106,6 +97,9 @@ public:
             const scalar position,
             vtkRenderer* renderer
         );
+
+        //- Clear files used to create the object(s)
+        virtual bool clear();
 };
 
 

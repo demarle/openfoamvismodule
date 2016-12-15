@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2015-2016 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2016 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -22,24 +22,23 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::geometrySurface
+    Foam::functionObjects::runTimePostPro::functionObjectBase
 
 Description
-    Visualisation of surface geometry data
+    Base class for function object visualisation
 
 SourceFiles
-    geometrySurface.C
+    functionObjectBase.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef functionObjects_runTimePostPro_geometrySurface_H
-#define functionObjects_runTimePostPro_geometrySurface_H
+#ifndef functionObjects_runTimePostPro_functionObjectBase_H
+#define functionObjects_runTimePostPro_functionObjectBase_H
 
-#include "surface.H"
+#include "fieldVisualisationBase.H"
+#include "stateFunctionObject.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-class vtkPolyData;
 
 namespace Foam
 {
@@ -49,84 +48,69 @@ namespace runTimePostPro
 {
 
 /*---------------------------------------------------------------------------*\
-                       Class geometrySurface Declaration
+                     Class functionObjectBase Declaration
 \*---------------------------------------------------------------------------*/
 
-class geometrySurface
+class functionObjectBase
 :
-    public surface
+    public fieldVisualisationBase
 {
 private:
 
     // Private Member Functions
 
         //- Disallow default bitwise copy construct
-        geometrySurface(const geometrySurface&) = delete;
+        functionObjectBase(const functionObjectBase&);
 
         //- Disallow default bitwise assignment
-        void operator=(const geometrySurface&) = delete;
+        void operator=(const functionObjectBase&);
 
 
 protected:
 
     // Protected data
 
-        //- File names
-        List<fileName> fileNames_;
+        //- Reference to the state
+        const stateFunctionObject& state_;
+
+        //- Function object name
+        word functionObjectName_;
+
+        //- Flag to indicate that source data should be cleared after use
+        bool clearObjects_;
 
 
     // Protected Member Functions
 
-        //- Add surface (file) to scene
-        void addGeometryToScene
-        (
-            const scalar position,
-            vtkRenderer* renderer,
-            const fileName& fName
-        ) const;
+        //- Retrieve file used to create the scene object
+        fileName getFileName(const word& keyword, const word& fieldName) const;
+
+        //- Remove file used to create the scene object
+        bool removeFile(const word& keyword, const word& fieldName);
 
 
 public:
 
     //- Run-time type information
-    TypeName("geometry");
+    TypeName("functionObjectBase");
 
 
     // Constructors
 
         //- Construct from dictionary
-        geometrySurface
+        functionObjectBase
         (
-            const runTimePostProcessing& parent,
+            const stateFunctionObject& state,
             const dictionary& dict,
             const HashPtrTable<Function1<vector>, word>& colours
         );
 
-        //- Construct from components
-        geometrySurface
-        (
-            const runTimePostProcessing& parent,
-            const dictionary& dict,
-            const HashPtrTable<Function1<vector>, word>& colours,
-            const List<fileName>& fileNames
-        );
-
 
     //- Destructor
-    virtual ~geometrySurface();
+    virtual ~functionObjectBase();
 
 
     // Member Functions
-
-        //- Add surface(s) to scene
-        virtual void addGeometryToScene
-        (
-            const scalar position,
-            vtkRenderer* renderer
-        );
-
-        //- Update actors
-        virtual void updateActors(const scalar position);
 
         //- Clear files used to create the object(s)
         virtual bool clear();

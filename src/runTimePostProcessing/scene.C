@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2015-2017 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2015-2018 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -390,9 +390,17 @@ void Foam::functionObjects::runTimePostPro::scene::saveImage
 
     const Time& runTime = obr_.time();
 
-    fileName prefix(Pstream::parRun() ?
-        runTime.path()/".."/"postProcessing"/name_/obr_.time().timeName() :
-        runTime.path()/"postProcessing"/name_/obr_.time().timeName());
+    const fileName relPath
+    (
+        functionObject::outputPrefix/name_/obr_.time().timeName()
+    );
+
+    fileName prefix
+    (
+        Pstream::parRun() ?
+            runTime.path()/".."/relPath
+          : runTime.path()/relPath
+    );
 
     mkDir(prefix);
 

@@ -33,6 +33,7 @@ License
 #include "Time.H"
 #include "patchZones.H"
 #include "IOobjectList.H"
+#include "collatedFileOperation.H"
 
 // VTK includes
 #include "vtkDataArraySelection.h"
@@ -193,7 +194,8 @@ int Foam::vtkPVFoam::setTime(const std::vector<double>& requestTimes)
 
     Time& runTime = dbPtr_();
 
-    // Get times list
+    // Get times list. Flush first to force refresh.
+    fileHandler().flush();
     instantList Times = runTime.times();
 
     int nearestIndex = timeIndex_;
@@ -268,7 +270,7 @@ Foam::word Foam::vtkPVFoam::getReaderPartName(const int partId) const
 
 Foam::vtkPVFoam::vtkPVFoam
 (
-    const char* const FileName,
+    const char* const vtkFileName,
     vtkPVFoamReader* reader
 )
 :
@@ -294,12 +296,14 @@ Foam::vtkPVFoam::vtkPVFoam
 {
     if (debug)
     {
-        Info<< "vtkPVFoam - " << FileName << nl;
+        Info<< "vtkPVFoam - " << vtkFileName << nl;
         printMemory();
     }
 
+    fileName FileName(vtkFileName);
+
     // avoid argList and get rootPath/caseName directly from the file
-    fileName fullCasePath(fileName(FileName).path());
+    fileName fullCasePath(FileName.path());
 
     if (!isDir(fullCasePath))
     {
@@ -314,8 +318,20 @@ Foam::vtkPVFoam::vtkPVFoam
     setEnv("FOAM_EXECUTABLE", "paraview", false);
 
     // Set the case as an environment variable - some BCs might use this
+    if (fullCasePath.name().find("processors", 0) == 0)
+    {
+        // FileName e.g. "cavity/processors256/processor1.OpenFOAM
+        // Remove the processors section so it goes into processorDDD
+        // checking below.
+        fullCasePath = fullCasePath.path()/fileName(FileName.name()).lessExt();
+    }
+
+
     if (fullCasePath.name().find("processor", 0) == 0)
     {
+        // Give filehandler opportunity to analyse number of processors
+        (void)fileHandler().filePath(fullCasePath);
+
         const fileName globalCase = fullCasePath.path();
 
         setEnv("FOAM_CASE", globalCase, true);
@@ -709,6 +725,8 @@ std::vector<double> Foam::vtkPVFoam::findTimes(const bool skipZero) const
     if (dbPtr_.valid())
     {
         const Time& runTime = dbPtr_();
+        // Get times list. Flush first to force refresh.
+        fileHandler().flush();
         instantList timeLst = runTime.times();
 
         // find the first time for which this mesh appears to exist

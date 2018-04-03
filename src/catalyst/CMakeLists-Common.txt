@@ -1,0 +1,84 @@
+include(${PARAVIEW_USE_FILE})
+
+include_directories(
+    $ENV{WM_PROJECT_DIR}/src/OpenFOAM/lnInclude
+    $ENV{WM_PROJECT_DIR}/src/OSspecific/$ENV{WM_OSTYPE}/lnInclude
+    $ENV{WM_PROJECT_DIR}/src/finiteArea/lnInclude
+    $ENV{WM_PROJECT_DIR}/src/finiteVolume/lnInclude
+    $ENV{WM_PROJECT_DIR}/src/fileFormats/lnInclude
+    $ENV{WM_PROJECT_DIR}/src/conversion/lnInclude
+    $ENV{WM_PROJECT_DIR}/src/meshTools/lnInclude
+    $ENV{WM_PROJECT_DIR}/src/lagrangian/basic/lnInclude
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+link_directories(
+    $ENV{FOAM_LIBBIN}
+    $ENV{FOAM_LIBBIN}/dummy
+)
+
+add_definitions(
+    -DWM_$ENV{WM_PRECISION_OPTION} -DNoRepository
+    -DWM_LABEL_SIZE=$ENV{WM_LABEL_SIZE}
+)
+
+set(CMAKE_BUILD_TYPE Release)
+
+set(CMAKE_CXX_FLAGS_DEBUG
+    "-g -O0 -std=c++11 -Wall -Wextra -Wno-unused-parameter -Wnon-virtual-dtor -Wno-overloaded-virtual"
+)
+set(CMAKE_C_FLAGS_DEBUG "-g -O0 -std=c++11")
+
+set(CMAKE_CXX_FLAGS_RELEASE
+    "-O3 -std=c++11 -Wall -Wextra -Wno-unused-parameter -Wnon-virtual-dtor -Wno-overloaded-virtual")
+set(CMAKE_C_FLAGS_RELEASE "-O3 -std=c++11")
+
+# Set output library destination to OpenFOAM library directory
+set(LIBRARY_OUTPUT_PATH $ENV{FOAM_LIBBIN}
+    CACHE INTERNAL
+    ""
+)
+
+file(GLOB SOURCE_FILES
+    catalystCoprocess.C
+
+    cloud/catalystCloud.C
+    cloud/foamVtkCloudAdaptor.C
+
+    areaMesh/catalystFaMesh.C
+    areaMesh/foamVtkFaMeshAdaptor.C
+    areaMesh/foamVtkFaMeshAdaptorGeom.C
+    areaMesh/foamVtkFaMeshAdaptorFields.C
+
+    volMesh/catalystFvMesh.C
+    volMesh/foamVtkFvMeshAdaptor.C
+    volMesh/foamVtkFvMeshAdaptorGeom.C
+    volMesh/foamVtkFvMeshAdaptorGeomVtu.C
+    volMesh/foamVtkFvMeshAdaptorFields.C
+)
+
+set(OPENFOAM_LIBRARIES
+    OpenFOAM
+    finiteArea
+    finiteVolume
+    fileFormats
+    conversion
+    Pstream
+    meshTools
+    lagrangian
+)
+
+add_library(
+    catalystFoam
+    SHARED
+    ${SOURCE_FILES}
+)
+
+target_link_libraries(
+    catalystFoam
+    vtkPVPythonCatalyst vtkParallelMPI
+    ${OPENFOAM_LIBRARIES}
+)
+
+#-----------------------------------------------------------------------------

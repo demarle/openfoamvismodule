@@ -1,0 +1,410 @@
+/*---------------------------------------------------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     |
+    \\  /    A nd           | Copyright (C) 2017-2018 OpenCFD Ltd.
+     \\/     M anipulation  |
+-------------------------------------------------------------------------------
+License
+    This file is part of OpenFOAM.
+
+    OpenFOAM is free software: you can redistribute it and/or modify it
+    under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    OpenFOAM is distributed in the hope that it will be useful, but WITHOUT
+    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+    for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
+
+\*---------------------------------------------------------------------------*/
+
+#ifndef foamVtkFvMeshAdaptorFieldTemplates_C
+#define foamVtkFvMeshAdaptorFieldTemplates_C
+
+// OpenFOAM includes
+#include "error.H"
+#include "emptyFvPatchField.H"
+#include "wallPolyPatch.H"
+#include "volPointInterpolation.H"
+#include "zeroGradientFvPatchField.H"
+#include "interpolatePointToCell.H"
+
+// vtk includes
+#include "vtkFloatArray.h"
+#include "vtkCellData.h"
+#include "vtkPointData.h"
+#include "vtkSmartPointer.h"
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+//
+// volume-fields
+//
+
+template<class Type>
+void Foam::vtk::fvMeshAdaptor::convertVolField
+(
+    const PtrList<patchInterpolator>& patchInterpList,
+    const GeometricField<Type, fvPatchField, volMesh>& fld
+)
+{
+    const fvMesh& mesh = fld.mesh();
+    const polyBoundaryMesh& patches = mesh.boundaryMesh();
+
+    const bool interpField = !patchInterpList.empty();
+    const bool extrapPatch = false; //reader_->GetExtrapolatePatches(); TODO
+
+    // Interpolated field (demand driven)
+    autoPtr<GeometricField<Type, pointPatchField, pointMesh>> ptfPtr;
+    if (interpField)
+    {
+        ptfPtr.reset
+        (
+            volPointInterpolation::New(mesh).interpolate(fld).ptr()
+        );
+    }
+
+    // MESH
+    convertVolFieldInternal(fld, ptfPtr);
+
+    // PATCHES
+    const label npatches = this->nPatches();
+
+    for (label patchId=0; patchId < npatches; ++patchId)
+    {
+        const polyPatch& pp = patches[patchId];
+        const word& longName = pp.name();
+
+        auto iter = cachedVtp_.find(longName);
+        if (!iter.found() || !iter.object().dataset)
+        {
+            // Should not happen, but for safety require a vtk geometry
+            continue;
+        }
+
+        foamVtpData& vtpData = iter.object();
+        auto dataset = vtpData.dataset;
+
+        const labelList& patchIds = vtpData.additionalIds();
+        if (patchIds.empty())
+        {
+            continue;
+        }
+
+        // This is slightly roundabout, but we deal with groups and with
+        // single patches.
+        // For groups (spanning several patches) it is fairly messy to
+        // get interpolated point fields. We would need to create a indirect
+        // patch each time to obtain the mesh points. We thus skip that.
+        //
+        // To improve code reuse, we allocate the CellData as a zeroed-field
+        // ahead of time.
+
+        vtkSmartPointer<vtkFloatArray> cdata = zeroField<Type>
+        (
+            fld.name(),
+            dataset->GetNumberOfPolys()
+        );
+
+        vtkSmartPointer<vtkFloatArray> pdata;
+        const bool allowPdata = (interpField && patchIds.size() == 1);
+
+        label coffset = 0; // The write offset into cell-data
+        for (label patchId : patchIds)
+        {
+            const fvPatchField<Type>& ptf = fld.boundaryField()[patchId];
+
+            if
+            (
+                isType<emptyFvPatchField<Type>>(ptf)
+             ||
+                (
+                    extrapPatch
+                 && !polyPatch::constraintType(patches[patchId].type())
+                )
+            )
+            {
+                fvPatch p(ptf.patch().patch(), mesh.boundary());
+
+                tmp<Field<Type>> tpptf
+                (
+                    fvPatchField<Type>(p, fld).patchInternalField()
+                );
+
+                coffset += transcribeFloatData(cdata, tpptf(), coffset);
+
+                if (allowPdata && patchId < patchInterpList.size())
+                {
+                    pdata = vtk::Tools::convertFieldToVTK
+                    (
+                        fld.name(),
+                        patchInterpList[patchId].faceToPointInterpolate(tpptf)()
+                    );
+                }
+            }
+            else
+            {
+                coffset += transcribeFloatData(cdata, ptf, coffset);
+
+                if (allowPdata && patchId < patchInterpList.size())
+                {
+                    pdata = vtk::Tools::convertFieldToVTK
+                    (
+                        fld.name(),
+                        patchInterpList[patchId].faceToPointInterpolate(ptf)()
+                    );
+                }
+            }
+        }
+
+        if (cdata)
+        {
+            dataset->GetCellData()->AddArray(cdata);
+        }
+        if (pdata)
+        {
+            dataset->GetPointData()->AddArray(pdata);
+        }
+    }
+}
+
+
+template<class Type>
+void Foam::vtk::fvMeshAdaptor::convertVolFields
+(
+    const PtrList<patchInterpolator>& patchInterpList,
+    const wordRes& selectFields
+)
+{
+    typedef GeometricField<Type, fvPatchField, volMesh> FieldType;
+
+    // Restrict to GeometricField<Type, ...>
+    const wordList names(mesh_.sortedNames<FieldType>(selectFields));
+
+    for (const word& fieldName : names)
+    {
+        convertVolField
+        (
+            patchInterpList,
+            mesh_.lookupObject<FieldType>(fieldName)
+        );
+    }
+}
+
+
+template<class Type>
+void Foam::vtk::fvMeshAdaptor::convertVolFieldInternal
+(
+    const GeometricField<Type, fvPatchField, volMesh>& fld,
+    autoPtr<GeometricField<Type, pointPatchField, pointMesh>>& ptfPtr
+)
+{
+    if (!usingVolume())
+    {
+        return;
+    }
+
+    const auto& longName = internalName;
+
+    auto iter = cachedVtu_.find(longName);
+    if (!iter.found() || !iter.object().dataset)
+    {
+        // Should not happen, but for safety require a vtk geometry
+        return;
+    }
+    foamVtuData& vtuData = iter.object();
+    auto dataset = vtuData.dataset;
+
+    vtkSmartPointer<vtkFloatArray> cdata = convertVolFieldToVTK
+    (
+        fld,
+        vtuData
+    );
+    dataset->GetCellData()->AddArray(cdata);
+
+    // double cbound[2];
+    // cdata->GetRange(cbound);
+    // Info<< "range cdata: " << cbound[0] << " - " << cbound[1] << nl;
+
+    if (ptfPtr.valid())
+    {
+        vtkSmartPointer<vtkFloatArray> pdata = convertPointField
+        (
+            ptfPtr(),
+            fld,
+            vtuData
+        );
+        dataset->GetPointData()->AddArray(pdata);
+
+        // double bound[2];
+        // pdata->GetRange(bound);
+        // Info<< "range pdata: " << bound[0] << " - " << bound[1] << nl;
+    }
+}
+
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+template<class Type>
+vtkSmartPointer<vtkFloatArray> Foam::vtk::fvMeshAdaptor::convertPointField
+(
+    const GeometricField<Type, pointPatchField, pointMesh>& pfld,
+    const GeometricField<Type, fvPatchField, volMesh>& vfld,
+    const foamVtuData& vtuData
+)
+{
+    const int nComp(pTraits<Type>::nComponents);
+    const labelUList& addPointCellLabels = vtuData.additionalIds();
+    const labelUList& pointMap = vtuData.pointMap();
+
+    // Use a pointMap or address directly into mesh
+    const label nPoints = (pointMap.size() ? pointMap.size() : pfld.size());
+
+    auto data = vtkSmartPointer<vtkFloatArray>::New();
+    data->SetNumberOfComponents(nComp);
+    data->SetNumberOfTuples(nPoints + addPointCellLabels.size());
+
+    // Note: using the name of the original volField
+    // not the name generated by the interpolation "volPointInterpolate(<name>)"
+
+    if (notNull(vfld))
+    {
+        data->SetName(vfld.name().c_str());
+    }
+    else
+    {
+        data->SetName(pfld.name().c_str());
+    }
+
+    if (debug)
+    {
+        Info<< "convert Point field: "
+            << pfld.name()
+            << " size="  << (nPoints + addPointCellLabels.size())
+            << " (" << nPoints << " + " << addPointCellLabels.size()
+            << ") nComp=" << nComp << endl;
+    }
+
+    float vec[pTraits<Type>::nComponents];
+
+    label pointi = 0;
+    if (pointMap.size())
+    {
+        forAll(pointMap, i)
+        {
+            const Type& t = pfld[pointMap[i]];
+            for (direction d=0; d<nComp; ++d)
+            {
+                vec[d] = component(t, d);
+            }
+            remapTuple<Type>(vec);
+
+            data->SetTuple(pointi++, vec);
+        }
+    }
+    else
+    {
+        forAll(pfld, i)
+        {
+            const Type& t = pfld[i];
+            for (direction d=0; d<nComp; ++d)
+            {
+                vec[d] = component(t, d);
+            }
+            remapTuple<Type>(vec);
+
+            data->SetTuple(pointi++, vec);
+        }
+    }
+
+    // Continue with additional points
+
+    if (notNull(vfld))
+    {
+        forAll(addPointCellLabels, apI)
+        {
+            const Type& t = vfld[addPointCellLabels[apI]];
+            for (direction d=0; d<nComp; ++d)
+            {
+                vec[d] = component(t, d);
+            }
+            remapTuple<Type>(vec);
+
+            data->SetTuple(pointi++, vec);
+        }
+    }
+    else
+    {
+        forAll(addPointCellLabels, apI)
+        {
+            Type t = interpolatePointToCell(pfld, addPointCellLabels[apI]);
+            for (direction d=0; d<nComp; ++d)
+            {
+                vec[d] = component(t, d);
+            }
+            remapTuple<Type>(vec);
+
+            data->SetTuple(pointi++, vec);
+        }
+    }
+
+    return data;
+}
+
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+//
+// low-level conversions
+//
+
+template<class Type>
+vtkSmartPointer<vtkFloatArray>
+Foam::vtk::fvMeshAdaptor::convertVolFieldToVTK
+(
+    const GeometricField<Type, fvPatchField, volMesh>& fld,
+    const foamVtuData& vtuData
+) const
+{
+    const int nComp(pTraits<Type>::nComponents);
+    const labelUList& cellMap = vtuData.cellMap();
+
+    auto data = vtkSmartPointer<vtkFloatArray>::New();
+    data->SetName(fld.name().c_str());
+    data->SetNumberOfComponents(nComp);
+    data->SetNumberOfTuples(cellMap.size());
+
+    if (debug)
+    {
+        Info<< "convert volField: "
+            << fld.name()
+            << " size=" << cellMap.size()
+            << " (" << fld.size() << " + "
+            << (cellMap.size() - fld.size())
+            << ") nComp=" << nComp << endl;
+    }
+
+    float scratch[nComp];
+    forAll(cellMap, i)
+    {
+        const Type& t = fld[cellMap[i]];
+        for (direction d=0; d<nComp; ++d)
+        {
+            scratch[d] = component(t, d);
+        }
+        remapTuple<Type>(scratch);
+
+        data->SetTuple(i, scratch);
+    }
+
+    return data;
+}
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+#endif
+
+// ************************************************************************* //

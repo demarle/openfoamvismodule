@@ -99,6 +99,7 @@ Foam::label Foam::catalystCoprocess::expand
         string& s = scripts[scripti];
 
         stringOps::inplaceExpand(s, dict, true, true);
+        fileName::clean(s);  // Remove trailing, repeated slashes etc.
 
         if (isFile(s))
         {

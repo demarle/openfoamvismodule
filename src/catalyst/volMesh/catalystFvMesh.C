@@ -46,6 +46,29 @@ namespace functionObjects
 
 // * * * * * * * * * * * * Protected Member Functions  * * * * * * * * * * * //
 
+bool Foam::functionObjects::catalystFvMesh::readBasics(const dictionary& dict)
+{
+    int debugLevel = 0;
+    if (dict.readIfPresent("debug", debugLevel))
+    {
+        catalystCoprocess::debug = debugLevel;
+    }
+
+    fileName outputDir;
+    if (dict.readIfPresent("mkdir", outputDir))
+    {
+        outputDir.expand();
+        outputDir.clean();
+        Foam::mkDir(outputDir);
+    }
+
+    dict.lookup("scripts") >> scripts_;         // Python scripts
+    catalystCoprocess::expand(scripts_, dict);  // Expand and check availability
+
+    return true;
+}
+
+
 void Foam::functionObjects::catalystFvMesh::updateState
 (
     polyMesh::readUpdateState state
@@ -105,11 +128,24 @@ bool Foam::functionObjects::catalystFvMesh::read(const dictionary& dict)
 {
     functionObject::read(dict);
 
+    // Common settings
     int debugLevel = 0;
     if (dict.readIfPresent("debug", debugLevel))
     {
         catalystCoprocess::debug = debugLevel;
     }
+
+    fileName outputDir;
+    if (dict.readIfPresent("mkdir", outputDir))
+    {
+        outputDir.expand();
+        outputDir.clean();
+        Foam::mkDir(outputDir);
+    }
+
+    dict.lookup("scripts") >> scripts_;         // Python scripts
+    catalystCoprocess::expand(scripts_, dict);  // Expand and check availability
+
 
     // All possible meshes
     meshes_ = time_.lookupClass<fvMesh>();
@@ -128,9 +164,7 @@ bool Foam::functionObjects::catalystFvMesh::read(const dictionary& dict)
     meshes_.filterKeys(wordRes(selectRegions_));
 
     dict.lookup("fields") >> selectFields_;
-    dict.lookup("scripts") >> scripts_;         // Python scripts
 
-    catalystCoprocess::expand(scripts_, dict);  // Expand and check availability
 
     Info<< type() << " " << name() << ":" << nl
         <<"    regions " << flatOutput(selectRegions_) << nl
@@ -138,9 +172,9 @@ bool Foam::functionObjects::catalystFvMesh::read(const dictionary& dict)
         <<"    fields  " << flatOutput(selectFields_) << nl
         <<"    scripts " << scripts_ << nl;
 
-    // Run-time modification of pipeline
     if (adaptor_.valid())
     {
+        // Run-time modification of pipeline
         adaptor_().reset(scripts_);
     }
 
@@ -339,6 +373,19 @@ bool Foam::functionObjects::catalystFvMesh::execute()
 
 bool Foam::functionObjects::catalystFvMesh::write()
 {
+    return true;
+}
+
+
+bool Foam::functionObjects::catalystFvMesh::end()
+{
+    // Only here for extra feedback
+    if (log && adaptor_.valid())
+    {
+        Info<< type() << ": Disconnecting ParaView Catalyst..." << nl;
+    }
+
+    adaptor_.clear();
     return true;
 }
 

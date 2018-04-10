@@ -46,6 +46,31 @@ namespace functionObjects
 }
 
 
+// * * * * * * * * * * * * Protected Member Functions  * * * * * * * * * * * //
+
+bool Foam::functionObjects::catalystCloud::readBasics(const dictionary& dict)
+{
+    int debugLevel = 0;
+    if (dict.readIfPresent("debug", debugLevel))
+    {
+        catalystCoprocess::debug = debugLevel;
+    }
+
+    fileName outputDir;
+    if (dict.readIfPresent("mkdir", outputDir))
+    {
+        outputDir.expand();
+        outputDir.clean();
+        Foam::mkDir(outputDir);
+    }
+
+    dict.lookup("scripts") >> scripts_;         // Python scripts
+    catalystCoprocess::expand(scripts_, dict);  // Expand and check availability
+
+    return true;
+}
+
+
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 Foam::functionObjects::catalystCloud::catalystCloud
@@ -76,11 +101,7 @@ bool Foam::functionObjects::catalystCloud::read(const dictionary& dict)
 {
     fvMeshFunctionObject::read(dict);
 
-    int debugLevel = 0;
-    if (dict.readIfPresent("debug", debugLevel))
-    {
-        catalystCoprocess::debug = debugLevel;
-    }
+    readBasics(dict);
 
     selectClouds_.clear();
     dict.readIfPresent("clouds", selectClouds_);
@@ -95,18 +116,15 @@ bool Foam::functionObjects::catalystCloud::read(const dictionary& dict)
     selectFields_.clear();
     dict.readIfPresent("fields", selectFields_);
 
-    dict.lookup("scripts") >> scripts_;         // Python scripts
-
-    catalystCoprocess::expand(scripts_, dict);  // Expand and check availability
 
     Info<< type() << " " << name() << ":" << nl
         <<"    clouds  " << flatOutput(selectClouds_) << nl
         <<"    fields  " << flatOutput(selectFields_) << nl
         <<"    scripts " << scripts_ << nl;
 
-    // Run-time modification of pipeline
     if (adaptor_.valid())
     {
+        // Run-time modification of pipeline
         adaptor_().reset(scripts_);
     }
 
@@ -201,6 +219,19 @@ bool Foam::functionObjects::catalystCloud::execute()
 
 bool Foam::functionObjects::catalystCloud::write()
 {
+    return true;
+}
+
+
+bool Foam::functionObjects::catalystCloud::end()
+{
+    // Only here for extra feedback
+    if (log && adaptor_.valid())
+    {
+        Info<< type() << ": Disconnecting ParaView Catalyst..." << nl;
+    }
+
+    adaptor_.clear();
     return true;
 }
 

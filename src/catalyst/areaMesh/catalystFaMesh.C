@@ -48,6 +48,29 @@ namespace functionObjects
 
 // * * * * * * * * * * * * Protected Member Functions  * * * * * * * * * * * //
 
+bool Foam::functionObjects::catalystFaMesh::readBasics(const dictionary& dict)
+{
+    int debugLevel = 0;
+    if (dict.readIfPresent("debug", debugLevel))
+    {
+        catalystCoprocess::debug = debugLevel;
+    }
+
+    fileName outputDir;
+    if (dict.readIfPresent("mkdir", outputDir))
+    {
+        outputDir.expand();
+        outputDir.clean();
+        Foam::mkDir(outputDir);
+    }
+
+    dict.lookup("scripts") >> scripts_;         // Python scripts
+    catalystCoprocess::expand(scripts_, dict);  // Expand and check availability
+
+    return true;
+}
+
+
 void Foam::functionObjects::catalystFaMesh::updateState
 (
     polyMesh::readUpdateState state
@@ -106,11 +129,7 @@ bool Foam::functionObjects::catalystFaMesh::read(const dictionary& dict)
 {
     fvMeshFunctionObject::read(dict);
 
-    int debugLevel = 0;
-    if (dict.readIfPresent("debug", debugLevel))
-    {
-        catalystCoprocess::debug = debugLevel;
-    }
+    readBasics(dict);
 
     // All possible meshes
     meshes_ = mesh_.lookupClass<faMesh>();
@@ -143,9 +162,7 @@ bool Foam::functionObjects::catalystFaMesh::read(const dictionary& dict)
     meshes_.filterKeys(wordRes(selectAreas_));
 
     dict.lookup("fields") >> selectFields_;
-    dict.lookup("scripts") >> scripts_;         // Python scripts
 
-    catalystCoprocess::expand(scripts_, dict);  // Expand and check availability
 
     Info<< type() << " " << name() << ":" << nl
         <<"    areas   " << flatOutput(selectAreas_) << nl
@@ -153,9 +170,9 @@ bool Foam::functionObjects::catalystFaMesh::read(const dictionary& dict)
         <<"    fields  " << flatOutput(selectFields_) << nl
         <<"    scripts " << scripts_ << nl;
 
-    // Run-time modification of pipeline
     if (adaptor_.valid())
     {
+        // Run-time modification of pipeline
         adaptor_().reset(scripts_);
     }
 
@@ -272,6 +289,19 @@ bool Foam::functionObjects::catalystFaMesh::execute()
 
 bool Foam::functionObjects::catalystFaMesh::write()
 {
+    return true;
+}
+
+
+bool Foam::functionObjects::catalystFaMesh::end()
+{
+    // Only here for extra feedback
+    if (log && adaptor_.valid())
+    {
+        Info<< type() << ": Disconnecting ParaView Catalyst..." << nl;
+    }
+
+    adaptor_.clear();
     return true;
 }
 

@@ -52,6 +52,7 @@ Usage
         Property     | Description                 | Required    | Default value
         type         | catalyst::cloud             | yes         |
         log          | report extra information    | no          | false
+        mkdir        | initial directory to create | no          |
         cloud        |                             | no          | defaultCloud
         clouds       | wordRe list of clouds       | no          |
         region       |                             | no          | region0
@@ -120,7 +121,11 @@ protected:
         autoPtr<catalystCoprocess> adaptor_;
 
 
-    // Private Member Functions
+    // Protected Member Functions
+
+        //- Common boilerplate settings
+        bool readBasics(const dictionary& dict);
+
 
         //- No copy construct
         catalystCloud(const catalystCloud&) = delete;
@@ -160,6 +165,8 @@ public:
         //- Write - does nothing
         virtual bool write();
 
+        //- On end - provide feedback about disconnecting from catatyst.
+        virtual bool end();
 };
 
 

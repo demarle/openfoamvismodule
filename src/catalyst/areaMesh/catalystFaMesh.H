@@ -51,6 +51,7 @@ Usage
         Property     | Description                 | Required    | Default
         type         | catalyst::area              | yes         |
         log          | report extra information    | no          | false
+        mkdir        | initial directory to create | no          |
         region       |                             | no          | region0
         regions      | wordRe list of regions      | no          |
         fields       | wordRe list of fields       | yes         |
@@ -127,7 +128,12 @@ protected:
 
     // Protected Member Functions
 
+        //- Common boilerplate settings
+        bool readBasics(const dictionary& dict);
+
+        //- On movement
         void updateState(polyMesh::readUpdateState state);
+
 
         //- No copy construct
         catalystFaMesh(const catalystFaMesh&) = delete;
@@ -166,6 +172,9 @@ public:
 
         //- Write - does nothing
         virtual bool write();
+
+        //- On end - provide feedback about disconnecting from catatyst.
+        virtual bool end();
 
         //- Update for changes of mesh
         virtual void updateMesh(const mapPolyMesh& mpm);

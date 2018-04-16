@@ -183,6 +183,10 @@ private:
         //  There will be several for groups, but only one for regular patches.
         void convertGeometryPatches();
 
+        //- Ghost cells to affect the visibility of the geometry.
+        //  Currently only used for overset.
+        void applyGhosting();
+
 
     // Field Conversion
 

@@ -24,6 +24,7 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "foamVtkFvMeshAdaptor.H"
+#include "cellCellStencilObject.H"
 
 // VTK includes
 #include <vtkMultiBlockDataSet.h>
@@ -152,6 +153,86 @@ void Foam::vtk::fvMeshAdaptor::convertGeometryPatches()
             cachedVtp_.erase(longName);
         }
     }
+}
+
+
+// These need to be rebuild here, since the component mesh may just have point
+// motion without topology changes.
+void Foam::vtk::fvMeshAdaptor::applyGhosting()
+{
+    if (!usingVolume())
+    {
+        return;
+    }
+
+    const auto* stencilPtr =
+        mesh_.lookupObjectPtr<cellCellStencilObject>
+        (
+            cellCellStencilObject::typeName
+        );
+
+    if (!stencilPtr)
+    {
+        return;
+    }
+
+    const auto& longName = internalName;
+
+    auto iter = cachedVtu_.find(longName);
+    if (!iter.found() || !iter.object().dataset)
+    {
+        // Should not happen, but for safety require a vtk geometry
+        return;
+    }
+    foamVtuData& vtuData = iter.object();
+    auto dataset = vtuData.dataset;
+
+    const auto& stencil = *stencilPtr;
+    const labelUList& cellMap = vtuData.cellMap();
+
+    auto vtkgcell = dataset->GetCellGhostArray();
+    if (!vtkgcell)
+    {
+        vtkgcell = dataset->AllocateCellGhostArray();
+    }
+
+    // auto vtkgpoint = dataset->GetPointGhostArray();
+    // if (!vtkgpoint)
+    // {
+    //     vtkgpoint = dataset->AllocatePointGhostArray();
+    // }
+
+    UList<uint8_t> gcell =
+        vtk::Tools::asUList(vtkgcell, cellMap.size());
+
+    vtkgcell->FillValue(0); // Initialize to zero
+
+    const labelUList& types = stencil.cellTypes();
+
+    forAll(cellMap, i)
+    {
+        const label cellType = types[cellMap[i]];
+
+        if (cellType == cellCellStencil::INTERPOLATED)
+        {
+            gcell[i] |=
+            (
+                vtkDataSetAttributes::DUPLICATECELL
+            );
+        }
+        else if (cellType == cellCellStencil::HOLE)
+        {
+            // Need duplicate (not just HIDDENCELL) for it to be properly
+            // recognized
+            gcell[i] |=
+            (
+                vtkDataSetAttributes::DUPLICATECELL
+              | vtkDataSetAttributes::HIDDENCELL
+            );
+        }
+    }
+
+    dataset->GetCellData()->AddArray(vtkgcell);
 }
 
 

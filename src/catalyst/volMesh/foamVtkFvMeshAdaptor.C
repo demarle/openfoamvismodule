@@ -206,6 +206,7 @@ void Foam::vtk::fvMeshAdaptor::updateContent(const wordRes& selectFields)
 
     convertGeometryInternal();
     convertGeometryPatches();
+    applyGhosting();
     convertVolFields(selectFields);
     meshState_ = polyMesh::UNCHANGED;
 }

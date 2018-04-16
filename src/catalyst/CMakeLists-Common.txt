@@ -9,6 +9,7 @@ include_directories(
     $ENV{WM_PROJECT_DIR}/src/conversion/lnInclude
     $ENV{WM_PROJECT_DIR}/src/meshTools/lnInclude
     $ENV{WM_PROJECT_DIR}/src/lagrangian/basic/lnInclude
+    $ENV{WM_PROJECT_DIR}/src/overset/lnInclude
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_BINARY_DIR}
 )
@@ -67,6 +68,7 @@ set(OPENFOAM_LIBRARIES
     Pstream
     meshTools
     lagrangian
+    overset
 )
 
 add_library(

@@ -112,6 +112,14 @@ Foam::functionObjects::catalystFvMesh::catalystFvMesh
     backends_(),
     adaptor_()
 {
+    if (postProcess)
+    {
+        // Disable for post-process mode.
+        // Emit as FatalError for the try/catch in the caller.
+        FatalError
+            << type() << " disabled in post-process mode"
+            << exit(FatalError);
+    }
     read(dict);
 }
 

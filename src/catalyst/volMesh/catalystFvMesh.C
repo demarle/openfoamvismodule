@@ -54,16 +54,33 @@ bool Foam::functionObjects::catalystFvMesh::readBasics(const dictionary& dict)
         catalystCoprocess::debug = debugLevel;
     }
 
-    fileName outputDir;
-    if (dict.readIfPresent("mkdir", outputDir))
+    if (Pstream::master())
     {
-        outputDir.expand();
-        outputDir.clean();
-        Foam::mkDir(outputDir);
+        fileName dir;
+        if (dict.readIfPresent("mkdir", dir))
+        {
+            dir.expand();
+            dir.clean();
+        }
+        Foam::mkDir(dir);
+    }
+
+    dict.readIfPresent("outputDir", outputDir_);
+    outputDir_.expand();
+    outputDir_.clean();
+    if (Pstream::master())
+    {
+        Foam::mkDir(outputDir_);
     }
 
     dict.lookup("scripts") >> scripts_;         // Python scripts
     catalystCoprocess::expand(scripts_, dict);  // Expand and check availability
+
+    if (adaptor_.valid())
+    {
+        // Run-time modification of pipeline
+        adaptor_().reset(outputDir_, scripts_);
+    }
 
     return true;
 }
@@ -105,12 +122,13 @@ Foam::functionObjects::catalystFvMesh::catalystFvMesh
 :
     functionObject(name),
     time_(runTime),
+    outputDir_("<case>/insitu"),
+    scripts_(),
+    adaptor_(),
     selectRegions_(),
     selectFields_(),
-    scripts_(),
     meshes_(),
-    backends_(),
-    adaptor_()
+    backends_()
 {
     if (postProcess)
     {
@@ -135,25 +153,7 @@ Foam::functionObjects::catalystFvMesh::~catalystFvMesh()
 bool Foam::functionObjects::catalystFvMesh::read(const dictionary& dict)
 {
     functionObject::read(dict);
-
-    // Common settings
-    int debugLevel = 0;
-    if (dict.readIfPresent("debug", debugLevel))
-    {
-        catalystCoprocess::debug = debugLevel;
-    }
-
-    fileName outputDir;
-    if (dict.readIfPresent("mkdir", outputDir))
-    {
-        outputDir.expand();
-        outputDir.clean();
-        Foam::mkDir(outputDir);
-    }
-
-    dict.lookup("scripts") >> scripts_;         // Python scripts
-    catalystCoprocess::expand(scripts_, dict);  // Expand and check availability
-
+    readBasics(dict);
 
     // All possible meshes
     meshes_ = time_.lookupClass<fvMesh>();
@@ -173,18 +173,11 @@ bool Foam::functionObjects::catalystFvMesh::read(const dictionary& dict)
 
     dict.lookup("fields") >> selectFields_;
 
-
     Info<< type() << " " << name() << ":" << nl
         <<"    regions " << flatOutput(selectRegions_) << nl
         <<"    meshes  " << flatOutput(meshes_.sortedToc()) << nl
         <<"    fields  " << flatOutput(selectFields_) << nl
         <<"    scripts " << scripts_ << nl;
-
-    if (adaptor_.valid())
-    {
-        // Run-time modification of pipeline
-        adaptor_().reset(scripts_);
-    }
 
     // Ensure consistency - only retain backends with corresponding mesh region
     backends_.retain(meshes_);
@@ -221,7 +214,7 @@ bool Foam::functionObjects::catalystFvMesh::execute()
         if (updateAdaptor && !adaptor_.valid())
         {
             adaptor_.reset(new catalystCoprocess());
-            adaptor_().reset(scripts_);
+            adaptor_().reset(outputDir_, scripts_);
         }
     }
 

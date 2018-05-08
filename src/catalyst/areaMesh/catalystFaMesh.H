@@ -107,23 +107,27 @@ protected:
 
     // Protected data
 
+        //- The output directory
+        fileName outputDir_;
+
+        //- Python scripts for the catalyst pipeline
+        stringList scripts_;
+
+        //- The catalyst coprocess
+        autoPtr<catalystCoprocess> adaptor_;
+
+
         //- Requested names of areas to process
         wordRes selectAreas_;
 
         //- Names of fields to process
         wordRes selectFields_;
 
-        //- Python scripts for the catalyst pipeline
-        stringList scripts_;
-
         //- Pointers to the requested mesh regions
         HashTable<const faMesh*> meshes_;
 
         //- Backends for OpenFOAM to VTK translation (with internal caching)
         HashPtrTable<vtk::faMeshAdaptor> backends_;
-
-        //- The catalyst coprocess
-        autoPtr<catalystCoprocess> adaptor_;
 
 
     // Protected Member Functions

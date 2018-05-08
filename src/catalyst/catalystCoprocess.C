@@ -222,25 +222,56 @@ void Foam::catalystCoprocess::stop()
 }
 
 
-void Foam::catalystCoprocess::reset()
+void Foam::catalystCoprocess::reset(const fileName& outputDir)
 {
+    #ifdef USE_CATALYST_WORKING_DIRECTORY
+    if (coproc_ == nullptr)
+    {
+        coproc_ = vtkCPProcessor::New();
+        coproc_->Initialize(outputDir.c_str());
+        Info<< "Connecting ParaView Catalyst..." << endl;
+    }
+    else
+    {
+        coproc_->RemoveAllPipelines();
+
+        if (outputDir == coproc_->GetWorkingDirectory())
+        {
+            Info<< "Rebinding ParaView Catalyst..." << endl;
+        }
+        else
+        {
+            // Changed working directory ... redo everything.
+            coproc_->Delete();
+            coproc_ = nullptr;
+
+            reset(outputDir);
+        }
+    }
+    #else
     if (coproc_ == nullptr)
     {
         coproc_ = vtkCPProcessor::New();
         coproc_->Initialize();
-        Info<< "Connecting ParaView Catalyst..." << endl;
     }
     else
     {
         coproc_->RemoveAllPipelines();
         Info<< "Rebinding ParaView Catalyst..." << endl;
     }
+    Info<< "    Caution: using current working directory" << nl
+        << "    which may not be the same as the simulation directory" << endl;
+    #endif
 }
 
 
-void Foam::catalystCoprocess::reset(const UList<string>& scripts)
+void Foam::catalystCoprocess::reset
+(
+    const fileName& outputDir,
+    const UList<string>& scripts
+)
 {
-    reset();
+    reset(outputDir);
 
     int nscript = 0;
     for (const auto& script : scripts)

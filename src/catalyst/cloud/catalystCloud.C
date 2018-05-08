@@ -56,16 +56,33 @@ bool Foam::functionObjects::catalystCloud::readBasics(const dictionary& dict)
         catalystCoprocess::debug = debugLevel;
     }
 
-    fileName outputDir;
-    if (dict.readIfPresent("mkdir", outputDir))
+    if (Pstream::master())
     {
-        outputDir.expand();
-        outputDir.clean();
-        Foam::mkDir(outputDir);
+        fileName dir;
+        if (dict.readIfPresent("mkdir", dir))
+        {
+            dir.expand();
+            dir.clean();
+        }
+        Foam::mkDir(dir);
+    }
+
+    dict.readIfPresent("outputDir", outputDir_);
+    outputDir_.expand();
+    outputDir_.clean();
+    if (Pstream::master())
+    {
+        Foam::mkDir(outputDir_);
     }
 
     dict.lookup("scripts") >> scripts_;         // Python scripts
     catalystCoprocess::expand(scripts_, dict);  // Expand and check availability
+
+    if (adaptor_.valid())
+    {
+        // Run-time modification of pipeline
+        adaptor_().reset(outputDir_, scripts_);
+    }
 
     return true;
 }
@@ -81,9 +98,11 @@ Foam::functionObjects::catalystCloud::catalystCloud
 )
 :
     fvMeshFunctionObject(name, runTime, dict),
+    outputDir_("<case>/insitu"),
+    scripts_(),
+    adaptor_(),
     selectClouds_(),
-    selectFields_(),
-    adaptor_()
+    selectFields_()
 {
     if (postProcess)
     {
@@ -124,17 +143,10 @@ bool Foam::functionObjects::catalystCloud::read(const dictionary& dict)
     selectFields_.clear();
     dict.readIfPresent("fields", selectFields_);
 
-
     Info<< type() << " " << name() << ":" << nl
         <<"    clouds  " << flatOutput(selectClouds_) << nl
         <<"    fields  " << flatOutput(selectFields_) << nl
         <<"    scripts " << scripts_ << nl;
-
-    if (adaptor_.valid())
-    {
-        // Run-time modification of pipeline
-        adaptor_().reset(scripts_);
-    }
 
     return true;
 }
@@ -154,7 +166,7 @@ bool Foam::functionObjects::catalystCloud::execute()
         if (!adaptor_.valid())
         {
             adaptor_.reset(new catalystCoprocess());
-            adaptor_().reset(scripts_);
+            adaptor_().reset(outputDir_, scripts_);
         }
     }
 

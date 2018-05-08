@@ -208,12 +208,18 @@ public:
         //- \return True if the coprocess has been initialized.
         bool good() const;
 
-        //- Reset/initialize pipeline without pipeline scripts.
-        void reset();
+        //- Reset/initialize pipeline with output directory, but without
+        //- pipeline scripts.
+        void reset(const fileName& outputDir);
 
-        //- Reset/initialize pipeline with python scripts.
+        //- Reset/initialize pipeline with output directory and with
+        //- pipeline scripts.
         //  The script names must have already been resolved prior calling this.
-        void reset(const UList<string>& scripts);
+        void reset
+        (
+            const fileName& outputDir,
+            const UList<string>& scripts
+        );
 
         //- Query the coprocess pipelines if they should be executed at this
         //- iteration and possibly which fields they require.

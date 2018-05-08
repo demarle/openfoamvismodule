@@ -108,17 +108,21 @@ protected:
 
     // Protected data
 
-        //- Requested names of clouds to process
-        wordRes selectClouds_;
-
-        //- Subset of cloud fields to process
-        wordRes selectFields_;
+        //- The output directory
+        fileName outputDir_;
 
         //- Python scripts for the catalyst pipeline
         stringList scripts_;
 
         //- The catalyst coprocess
         autoPtr<catalystCoprocess> adaptor_;
+
+
+        //- Requested names of clouds to process
+        wordRes selectClouds_;
+
+        //- Subset of cloud fields to process
+        wordRes selectFields_;
 
 
     // Protected Member Functions

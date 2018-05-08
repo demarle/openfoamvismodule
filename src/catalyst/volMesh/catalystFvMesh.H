@@ -111,23 +111,27 @@ protected:
         //- Reference to the time database
         const Time& time_;
 
+        //- The output directory
+        fileName outputDir_;
+
+        //- Python scripts for the catalyst pipeline
+        stringList scripts_;
+
+        //- The catalyst coprocess
+        autoPtr<catalystCoprocess> adaptor_;
+
+
         //- Requested names of regions to process
         wordRes selectRegions_;
 
         //- Names of fields to process
         wordRes selectFields_;
 
-        //- Python scripts for the catalyst pipeline
-        stringList scripts_;
-
         //- Pointers to the requested mesh regions
         HashTable<const fvMesh*> meshes_;
 
         //- Backends for OpenFOAM to VTK translation (with internal caching)
         HashPtrTable<vtk::fvMeshAdaptor> backends_;
-
-        //- The catalyst coprocess
-        autoPtr<catalystCoprocess> adaptor_;
 
 
     // Protected Member Functions

@@ -56,16 +56,33 @@ bool Foam::functionObjects::catalystFaMesh::readBasics(const dictionary& dict)
         catalystCoprocess::debug = debugLevel;
     }
 
-    fileName outputDir;
-    if (dict.readIfPresent("mkdir", outputDir))
+    if (Pstream::master())
     {
-        outputDir.expand();
-        outputDir.clean();
-        Foam::mkDir(outputDir);
+        fileName dir;
+        if (dict.readIfPresent("mkdir", dir))
+        {
+            dir.expand();
+            dir.clean();
+        }
+        Foam::mkDir(dir);
+    }
+
+    dict.readIfPresent("outputDir", outputDir_);
+    outputDir_.expand();
+    outputDir_.clean();
+    if (Pstream::master())
+    {
+        Foam::mkDir(outputDir_);
     }
 
     dict.lookup("scripts") >> scripts_;         // Python scripts
     catalystCoprocess::expand(scripts_, dict);  // Expand and check availability
+
+    if (adaptor_.valid())
+    {
+        // Run-time modification of pipeline
+        adaptor_().reset(outputDir_, scripts_);
+    }
 
     return true;
 }
@@ -106,12 +123,13 @@ Foam::functionObjects::catalystFaMesh::catalystFaMesh
 )
 :
     fvMeshFunctionObject(name, runTime, dict),
+    outputDir_("<case>/insitu"),
+    scripts_(),
+    adaptor_(),
     selectAreas_(),
     selectFields_(),
-    scripts_(),
     meshes_(),
-    backends_(),
-    adaptor_()
+    backends_()
 {
     if (postProcess)
     {
@@ -171,18 +189,12 @@ bool Foam::functionObjects::catalystFaMesh::read(const dictionary& dict)
 
     dict.lookup("fields") >> selectFields_;
 
-
     Info<< type() << " " << name() << ":" << nl
         <<"    areas   " << flatOutput(selectAreas_) << nl
         <<"    meshes  " << flatOutput(meshes_.sortedToc()) << nl
         <<"    fields  " << flatOutput(selectFields_) << nl
         <<"    scripts " << scripts_ << nl;
 
-    if (adaptor_.valid())
-    {
-        // Run-time modification of pipeline
-        adaptor_().reset(scripts_);
-    }
 
     // Ensure consistency - only retain backends with corresponding mesh region
     backends_.retain(meshes_);
@@ -219,7 +231,7 @@ bool Foam::functionObjects::catalystFaMesh::execute()
         if (updateAdaptor && !adaptor_.valid())
         {
             adaptor_.reset(new catalystCoprocess());
-            adaptor_().reset(scripts_);
+            adaptor_().reset(outputDir_, scripts_);
         }
     }
 

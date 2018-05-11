@@ -1,0 +1,61 @@
+// ParaView Catalyst function object for OpenFOAM (-*- C++ -*-)
+
+catalyst
+{
+    type    catalyst;
+    libs    ("libcatalystFoam.so");
+
+    executeControl  timeStep;
+    writeControl    none;
+
+    // ^^^^^
+    // #includeEtc "caseDicts/insitu/catalyst/catalyst.cfg"
+
+
+    // mkdir  "<case>/someDir";
+
+    scripts
+    (
+        // "<etc>/caseDicts/insitu/catalyst/printChannels.py"
+        "<etc>/caseDicts/insitu/catalyst/writeAll.py"
+    );
+
+    inputs
+    {
+        // fvMesh
+        region
+        {
+            type    default;
+
+            // All regions
+            regions (".*");
+
+            // Selected fields (words or regex)
+            fields  (T U p);
+        }
+
+        // faMesh
+        area
+        {
+            type    area;
+
+            // Selected fields (words or regex)
+            fields  ( ".*" );
+        }
+
+        // lagrangian
+        cloud
+        {
+            type    cloud;
+
+            // Selected clouds (words or regex)
+            clouds  ( coalCloud1 limestoneCloud1 );
+
+            // Selected fields (words or regex)
+            fields  ( T U p rho "Y.*" );
+        }
+    }
+}
+
+
+// ************************************************************************* //

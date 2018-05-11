@@ -45,8 +45,8 @@ SourceFiles
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef foamVtkFvMeshAdaptor_H
-#define foamVtkFvMeshAdaptor_H
+#ifndef foamvtk_fvMeshAdaptor_H
+#define foamvtk_fvMeshAdaptor_H
 
 #include "className.H"
 #include "fileName.H"
@@ -99,6 +99,7 @@ public:
         //- The Catalyst output channels
         enum channel
         {
+            NONE = 0,
             MESH = 0x1,
             PATCHES = 0x2,
             INPUT = 0x3
@@ -267,7 +268,7 @@ public:
     // Constructors
 
         //- Construct from components
-        fvMeshAdaptor(const fvMesh& mesh);
+        fvMeshAdaptor(const fvMesh& mesh, const bool decompose=false);
 
 
     //- Destructor

@@ -45,7 +45,6 @@ SourceFiles
 #include "fileName.H"
 #include "stringList.H"
 #include "wordList.H"
-#include "Enum.H"
 #include "polyMesh.H"
 #include "areaFieldsFwd.H"
 #include "foamVtkTools.H"
@@ -88,14 +87,6 @@ class faMeshAdaptor
 public:
 
         //- Public Data Members
-
-        //- The Catalyst output channels
-        enum channel
-        {
-            INPUT = 0x3
-        };
-
-        static const Enum<channel> channelNames;
 
         //- Name for internal mesh ("internal")
         static const word internalName;

@@ -42,8 +42,8 @@ SourceFiles
 #ifndef foamVtkCloudAdaptor_H
 #define foamVtkCloudAdaptor_H
 
+#include "className.H"
 #include "fvMesh.H"
-#include "Enum.H"
 #include "foamVtkTools.H"
 
 #include <vtkPolyData.h>
@@ -63,22 +63,7 @@ namespace vtk
 
 class cloudAdaptor
 {
-public:
-
-    //- Public Data
-
-        //- The Catalyst output channels
-        enum class channel
-        {
-            CLOUD
-        };
-
-        static const Enum<channel> channelNames;
-
-
-private:
-
-    // Private Data
+    // Private data
 
         const fvMesh& mesh_;
 
@@ -119,6 +104,11 @@ private:
 
 
 public:
+
+    //- Static Data Members
+
+        ClassName("vtk::cloudAdaptor");
+
 
     // Constructors
 

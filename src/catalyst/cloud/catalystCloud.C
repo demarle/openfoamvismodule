@@ -24,12 +24,10 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "catalystCloud.H"
-#include "catalystCoprocess.H"
 #include "cloud.H"
 #include "foamVtkCloudAdaptor.H"
 #include "addToRunTimeSelectionTable.H"
 
-#include <vtkNew.h>
 #include <vtkCPDataDescription.h>
 #include <vtkMultiBlockDataSet.h>
 #include <vtkInformation.h>
@@ -38,97 +36,47 @@ License
 
 namespace Foam
 {
-namespace functionObjects
+namespace catalyst
 {
-    defineTypeNameAndDebug(catalystCloud, 0);
-    addToRunTimeSelectionTable(functionObject, catalystCloud, dictionary);
+    defineTypeNameAndDebug(cloudInput, 0);
+    addNamedToRunTimeSelectionTable
+    (
+        catalystInput,
+        cloudInput,
+        dictionary,
+        cloud
+    );
 }
-}
-
-
-// * * * * * * * * * * * * Protected Member Functions  * * * * * * * * * * * //
-
-bool Foam::functionObjects::catalystCloud::readBasics(const dictionary& dict)
-{
-    int debugLevel = 0;
-    if (dict.readIfPresent("debug", debugLevel))
-    {
-        catalystCoprocess::debug = debugLevel;
-    }
-
-    if (Pstream::master())
-    {
-        fileName dir;
-        if (dict.readIfPresent("mkdir", dir))
-        {
-            dir.expand();
-            dir.clean();
-        }
-        Foam::mkDir(dir);
-    }
-
-    dict.readIfPresent("outputDir", outputDir_);
-    outputDir_.expand();
-    outputDir_.clean();
-    if (Pstream::master())
-    {
-        Foam::mkDir(outputDir_);
-    }
-
-    dict.lookup("scripts") >> scripts_;         // Python scripts
-    catalystCoprocess::expand(scripts_, dict);  // Expand and check availability
-
-    if (adaptor_.valid())
-    {
-        // Run-time modification of pipeline
-        adaptor_().reset(outputDir_, scripts_);
-    }
-
-    return true;
 }
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-Foam::functionObjects::catalystCloud::catalystCloud
+Foam::catalyst::cloudInput::cloudInput
 (
     const word& name,
     const Time& runTime,
     const dictionary& dict
 )
 :
-    fvMeshFunctionObject(name, runTime, dict),
-    outputDir_("<case>/insitu"),
-    scripts_(),
-    adaptor_(),
+    catalystInput(name),
+    time_(runTime),
+    regionName_(),
     selectClouds_(),
     selectFields_()
 {
-    if (postProcess)
-    {
-        // Disable for post-process mode.
-        // Emit as FatalError for the try/catch in the caller.
-        FatalError
-            << type() << " disabled in post-process mode"
-            << exit(FatalError);
-    }
     read(dict);
 }
 
 
-// * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
-
-Foam::functionObjects::catalystCloud::~catalystCloud()
-{}
-
-
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-bool Foam::functionObjects::catalystCloud::read(const dictionary& dict)
+bool Foam::catalyst::cloudInput::read(const dictionary& dict)
 {
-    fvMeshFunctionObject::read(dict);
+    catalystInput::read(dict);
 
-    readBasics(dict);
+    regionName_ =
+        dict.lookupOrDefault<word>("region", polyMesh::defaultRegion);
 
     selectClouds_.clear();
     dict.readIfPresent("clouds", selectClouds_);
@@ -143,116 +91,101 @@ bool Foam::functionObjects::catalystCloud::read(const dictionary& dict)
     selectFields_.clear();
     dict.readIfPresent("fields", selectFields_);
 
-    Info<< type() << " " << name() << ":" << nl
-        <<"    clouds  " << flatOutput(selectClouds_) << nl
-        <<"    fields  " << flatOutput(selectFields_) << nl
-        <<"    scripts " << scripts_ << nl;
-
     return true;
 }
 
 
-bool Foam::functionObjects::catalystCloud::execute()
+Foam::label Foam::catalyst::cloudInput::addChannels(dataQuery& dataq)
 {
-    const wordList cloudNames(mesh_.sortedNames<cloud>(selectClouds_));
+    const fvMesh& fvm = time_.lookupObject<fvMesh>(regionName_);
 
-    if (cloudNames.empty())
+    if (fvm.names<cloud>(selectClouds_).empty())
     {
-        return true;
+        return 0;
     }
-
-    // Enforce sanity for backends and adaptor
-    {
-        if (!adaptor_.valid())
-        {
-            adaptor_.reset(new catalystCoprocess());
-            adaptor_().reset(outputDir_, scripts_);
-        }
-    }
-
 
     // Difficult to get the names of the fields from particles
     // ... need to skip for now
     wordHashSet allFields;
 
+    dataq.set(name(), allFields);
 
-    // Data description for co-processing
-    vtkNew<vtkCPDataDescription> descrip;
+    return 1;
+}
 
-    // Form data query for catalyst
-    catalystCoprocess::dataQuery dataq
-    (
-        vtk::cloudAdaptor::channelNames.names(),
-        time_,  // timeQuery
-        descrip.Get()
-    );
 
-    // Query catalyst
-    const HashTable<wordHashSet> expecting(adaptor_().query(dataq, allFields));
+bool Foam::catalyst::cloudInput::convert
+(
+    dataQuery& dataq,
+    outputChannels& outputs
+)
+{
+    const fvMesh& fvm = time_.lookupObject<fvMesh>(regionName_);
+    const wordList cloudNames(fvm.sortedNames<cloud>(selectClouds_));
 
-    if (catalystCoprocess::debug)
+    if (cloudNames.empty())
     {
-        if (expecting.empty())
-        {
-            Info<< type() << ": expecting no data" << nl;
-        }
-        else
-        {
-            Info<< type() << ": expecting data " << expecting << nl;
-        }
+        return false;  // skip - not available
     }
 
-    if (expecting.empty())
+    // Single channel only
+
+    label nChannels = 0;
+
+    if (dataq.found(name()))
     {
-        return true;
+        ++nChannels;
     }
 
-    auto output = vtkSmartPointer<vtkMultiBlockDataSet>::New();
+    if (!nChannels)
+    {
+        return false;  // skip - not requested
+    }
 
     // Each cloud in a separate block.
-    unsigned int cloudNo = 0;
+    unsigned int blockNo = 0;
     for (const word& cloudName : cloudNames)
     {
-        auto pieces =
-            vtk::cloudAdaptor(mesh_).getCloud(cloudName, selectFields_);
+        auto dataset =
+            vtk::cloudAdaptor(fvm).getCloud(cloudName, selectFields_);
 
-        output->SetBlock(cloudNo, pieces);
-        output->GetMetaData(cloudNo)->Set
-        (
-            vtkCompositeDataSet::NAME(),
-            cloudName
-        );
+        const fileName channel = name();
 
-        ++cloudNo;
-    }
+        if (dataq.found(channel))
+        {
+            // Get existing or new
+            vtkSmartPointer<vtkMultiBlockDataSet> block =
+                outputs.lookup
+                (
+                    channel,
+                    vtkSmartPointer<vtkMultiBlockDataSet>::New()
+                );
 
-    if (cloudNo)
-    {
-        Log << type() << ": send data" << nl;
+            block->SetBlock(blockNo, dataset);
 
-        adaptor_().process(dataq, output);
+            block->GetMetaData(blockNo)->Set
+            (
+                vtkCompositeDataSet::NAME(),
+                cloudName
+            );
+
+            outputs.set(channel, block);  // overwrites existing
+        }
+
+        ++blockNo;
     }
 
     return true;
 }
 
 
-bool Foam::functionObjects::catalystCloud::write()
+Foam::Ostream& Foam::catalyst::cloudInput::print(Ostream& os) const
 {
-    return true;
-}
+    os  << name() << nl
+        <<"    clouds  " << flatOutput(selectClouds_) << nl
+        <<"    fields  " << flatOutput(selectFields_) << nl;
 
-
-bool Foam::functionObjects::catalystCloud::end()
-{
-    // Only here for extra feedback
-    if (log && adaptor_.valid())
-    {
-        Info<< type() << ": Disconnecting ParaView Catalyst..." << nl;
-    }
-
-    adaptor_.clear();
-    return true;
+    return os;
 }
 
 

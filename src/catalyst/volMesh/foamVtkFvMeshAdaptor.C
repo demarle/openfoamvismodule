@@ -64,12 +64,13 @@ const Foam::word Foam::vtk::fvMeshAdaptor::internalName("internal");
 
 Foam::vtk::fvMeshAdaptor::fvMeshAdaptor
 (
-    const fvMesh& mesh
+    const fvMesh& mesh,
+    const bool decompose
 )
 :
     mesh_(mesh),
     channels_(INPUT),
-    decomposePoly_(false),
+    decomposePoly_(decompose),
     meshState_(polyMesh::TOPO_CHANGE)
 {}
 
@@ -145,9 +146,6 @@ Foam::label Foam::vtk::fvMeshAdaptor::nPatches() const
 void Foam::vtk::fvMeshAdaptor::updateContent(const wordRes& selectFields)
 {
     const bool oldDecomp = decomposePoly_;
-
-    // TODO from dictionary
-    //decomposePoly_ = !reader_->GetUseVTKPolyhedron();
 
     // Update cached, saved, unneed values.
 

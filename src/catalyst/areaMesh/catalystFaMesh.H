@@ -22,51 +22,35 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::functionObjects::catalystFaMesh
-
-Group
-    grpUtilitiesFunctionObjects
+    Foam::catalyst::faMeshInput
 
 Description
-    A Paraview Catalyst adaptor for OpenFOAM faMesh regions.
+    A Paraview Catalyst source for OpenFOAM faMesh regions.
 
-    The output comprises a single "input" channel, which is a multi-block
-    dataset (one block per area mesh).
+    The source comprises a single internal "input" channel,
+    which is a multi-block dataset (one block per area mesh).
+    On output, the "input" sub-channel receives the name of the source.
 
-    Example of function object specification:
+    Example specification:
     \verbatim
-    catalyst
+    myArea
     {
-        type            catalyst::area;
-        libs            ("libcatalystFoam.so");
+        type            area;
         fields          (U p);
-        scripts         ( ... );
-        executeControl  timeStep;
-        executeInterval 1;
     }
     \endverbatim
 
 Usage
     \table
         Property     | Description                 | Required    | Default
-        type         | catalyst::area              | yes         |
-        log          | report extra information    | no          | false
-        mkdir        | initial directory to create | no          |
+        type         | area                        | yes         |
         region       |                             | no          | region0
         regions      | wordRe list of regions      | no          |
         fields       | wordRe list of fields       | yes         |
-        scripts      | Python pipeline scripts     | yes         |
     \endtable
 
-Note
-    The execution frequency can be defined by the functionObject and
-    by the Catalyst pipeline.
-
 See also
-    Foam::functionObjects::functionObject
-    Foam::functionObjects::fvMeshFunctionObject
-    Foam::functionObjects::timeControl
-    Foam::catalystCoprocess
+    Foam::catalyst::catalystInput
     Foam::vtk::faMeshAdaptor
 
 SourceFiles
@@ -75,47 +59,38 @@ SourceFiles
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef functionObjects_catalystFaMesh_H
-#define functionObjects_catalystFaMesh_H
+#ifndef catalyst_faMeshInput_H
+#define catalyst_faMeshInput_H
 
-#include "fvMeshFunctionObject.H"
-#include "foamVtkFaMeshAdaptor.H"
 #include "wordRes.H"
 #include "HashPtrTable.H"
+#include "catalystInput.H"
+#include "foamVtkFaMeshAdaptor.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
-
-// Forward declarations
-
-class catalystCoprocess;
-
-namespace functionObjects
+namespace catalyst
 {
 
 /*---------------------------------------------------------------------------*\
-                          Class catalystFaMesh Declaration
+                          Class catalyst::faMeshInput Declaration
 \*---------------------------------------------------------------------------*/
 
-class catalystFaMesh
+class faMeshInput
 :
-    public fvMeshFunctionObject
+    public catalystInput
 {
 protected:
 
     // Protected data
 
-        //- The output directory
-        fileName outputDir_;
+        //- Reference to the time database
+        const Time& time_;
 
-        //- Python scripts for the catalyst pipeline
-        stringList scripts_;
-
-        //- The catalyst coprocess
-        autoPtr<catalystCoprocess> adaptor_;
-
+        //- The region name for the area meshes
+        word regionName_;
 
         //- Requested names of areas to process
         wordRes selectAreas_;
@@ -132,29 +107,25 @@ protected:
 
     // Protected Member Functions
 
-        //- Common boilerplate settings
-        bool readBasics(const dictionary& dict);
-
-        //- On movement
-        void updateState(polyMesh::readUpdateState state);
-
+        //- Update/synchronize internals with catalyst backends
+        void update();
 
         //- No copy construct
-        catalystFaMesh(const catalystFaMesh&) = delete;
+        faMeshInput(const faMeshInput&) = delete;
 
         //- No copy assignment
-        void operator=(const catalystFaMesh&) = delete;
+        void operator=(const faMeshInput&) = delete;
 
 public:
 
     //- Runtime type information
-    TypeName("catalyst::area");
+    ClassName("catalyst::faMesh");
 
 
     // Constructors
 
         //- Construct from Time and dictionary
-        catalystFaMesh
+        faMeshInput
         (
             const word& name,
             const Time& runTime,
@@ -163,7 +134,7 @@ public:
 
 
     //- Destructor
-    virtual ~catalystFaMesh();
+    virtual ~faMeshInput() = default;
 
 
     // Member Functions
@@ -171,27 +142,23 @@ public:
         //- Read the specification
         virtual bool read(const dictionary& dict);
 
-        //- Execute catalyst pipelines
-        virtual bool execute();
+        //- Update for changes of mesh or mesh point-motion
+        virtual void update(polyMesh::readUpdateState state);
 
-        //- Write - does nothing
-        virtual bool write();
+        //- Add available channels (with fields) to data query
+        virtual label addChannels(dataQuery& dataq);
 
-        //- On end - provide feedback about disconnecting from catatyst.
-        virtual bool end();
+        //- Convert channels to vtkMultiBlockDataSet outputs
+        virtual bool convert(dataQuery& dataq, outputChannels& outputs);
 
-        //- Update for changes of mesh
-        virtual void updateMesh(const mapPolyMesh& mpm);
-
-        //- Update for mesh point-motion
-        virtual void movePoints(const polyMesh& mesh);
-
+        //- Print information
+        virtual Ostream& print(Ostream& os) const;
 };
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-} // End namespace functionObjects
+} // End namespace catalyst
 } // End namespace Foam
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

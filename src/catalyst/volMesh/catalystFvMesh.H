@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2017-2018 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2018 OpenCFD Ltd.
      \\/     M anipulation  | Copyright (C) 2018 CINECA
 -------------------------------------------------------------------------------
 License
@@ -22,52 +22,42 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::functionObjects::catalystFvMesh
-
-Group
-    grpUtilitiesFunctionObjects
+    Foam::catalyst::fvMeshInput
 
 Description
-    A Paraview Catalyst adaptor for OpenFOAM fvMesh regions.
+    A Paraview Catalyst source for OpenFOAM fvMesh regions.
 
-    The output comprises up to three channels ("input", "mesh", "patches"),
-    each of which is a multi-block dataset.
+    The source comprises up to three internal channels
+    ("input", "mesh", "patches"), each of which is a multi-block dataset.
+    On output, the "input" sub-channel receives the name of the source,
+    while the "mesh" and "patches" sub-channels are prefixed with the
+    name of the source.
 
-    Example of function object specification:
+    Example specification:
     \verbatim
-    catalyst
+    myName
     {
-        type            catalyst;
-        libs            ("libcatalystFoam.so");
+        type            default;
         regions         ( ".*Solid" )
         fields          (U p);
-        scripts         ( ... );
-        executeControl  timeStep;
-        executeInterval 1;
     }
     \endverbatim
 
+    Resulting in three output channels:
+    "myName", "myName/mesh", "myName/patches"
+
 Usage
     \table
-        Property     | Description                 | Required    | Default
-        type         | catalyst                    | yes         |
-        log          | report extra information    | no          | false
-        mkdir        | initial directory to create | no          |
-        region       |                             | no          | region0
-        regions      | wordRe list of regions      | no          |
-        fields       | wordRe list of fields       | yes         |
-        scripts      | Python pipeline scripts     | yes         |
+        Property     | Description                      | Required    | Default
+        type         | default                          | no          | default
+        region       |                                  | no          | region0
+        regions      | wordRe list of regions           | no          |
+        fields       | wordRe list of fields            | yes         |
+        decompose    | decompose polyhedra              | no          | false
     \endtable
 
-Note
-    The execution frequency can be defined by the functionObject and
-    by the Catalyst pipeline.
-
 See also
-    Foam::functionObjects::functionObject
-    Foam::functionObjects::fvMeshFunctionObject
-    Foam::functionObjects::timeControl
-    Foam::catalystCoprocess
+    Foam::catalyst::catalystInput
     Foam::vtk::fvMeshAdaptor
 
 SourceFiles
@@ -76,33 +66,28 @@ SourceFiles
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef functionObjects_catalystFvMesh_H
-#define functionObjects_catalystFvMesh_H
+#ifndef catalyst_fvMeshInput_H
+#define catalyst_fvMeshInput_H
 
-#include "functionObject.H"
-#include "foamVtkFvMeshAdaptor.H"
 #include "wordRes.H"
 #include "HashPtrTable.H"
+#include "catalystInput.H"
+#include "foamVtkFvMeshAdaptor.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
-
-// Forward declarations
-
-class catalystCoprocess;
-
-namespace functionObjects
+namespace catalyst
 {
 
 /*---------------------------------------------------------------------------*\
-                          Class catalystFvMesh Declaration
+                    Class catalyst::fvMeshInput Declaration
 \*---------------------------------------------------------------------------*/
 
-class catalystFvMesh
+class fvMeshInput
 :
-    public functionObject
+    public catalystInput
 {
 protected:
 
@@ -111,21 +96,14 @@ protected:
         //- Reference to the time database
         const Time& time_;
 
-        //- The output directory
-        fileName outputDir_;
-
-        //- Python scripts for the catalyst pipeline
-        stringList scripts_;
-
-        //- The catalyst coprocess
-        autoPtr<catalystCoprocess> adaptor_;
-
-
         //- Requested names of regions to process
         wordRes selectRegions_;
 
         //- Names of fields to process
         wordRes selectFields_;
+
+        //- Decompose polyhedra
+        bool decompose_;
 
         //- Pointers to the requested mesh regions
         HashTable<const fvMesh*> meshes_;
@@ -133,32 +111,34 @@ protected:
         //- Backends for OpenFOAM to VTK translation (with internal caching)
         HashPtrTable<vtk::fvMeshAdaptor> backends_;
 
+        //- Use channel enumeration from vtk::fvMeshAdaptor
+        using channelEnum = vtk::fvMeshAdaptor::channel;
+
 
     // Protected Member Functions
 
-        //- Common boilerplate settings
-        bool readBasics(const dictionary& dict);
+        //- Return full channel name
+        fileName channelName(channelEnum chan) const;
 
-        //- On movement
-        void updateState(polyMesh::readUpdateState state);
-
+        //- Update/synchronize internals with catalyst backends
+        void update();
 
         //- No copy construct
-        catalystFvMesh(const catalystFvMesh&) = delete;
+        fvMeshInput(const fvMeshInput&) = delete;
 
         //- No copy assignment
-        void operator=(const catalystFvMesh&) = delete;
+        void operator=(const fvMeshInput&) = delete;
 
 public:
 
     //- Runtime type information
-    TypeName("catalyst");
+    ClassName("catalyst::fvMesh");
 
 
     // Constructors
 
         //- Construct from Time and dictionary
-        catalystFvMesh
+        fvMeshInput
         (
             const word& name,
             const Time& runTime,
@@ -167,7 +147,7 @@ public:
 
 
     //- Destructor
-    virtual ~catalystFvMesh();
+    virtual ~fvMeshInput() = default;
 
 
     // Member Functions
@@ -175,27 +155,23 @@ public:
         //- Read the specification
         virtual bool read(const dictionary& dict);
 
-        //- Execute catalyst pipelines
-        virtual bool execute();
+        //- Update for changes of mesh or mesh point-motion
+        virtual void update(polyMesh::readUpdateState state);
 
-        //- Write - does nothing
-        virtual bool write();
+        //- Add available channels (with fields) to data query
+        virtual label addChannels(dataQuery& dataq);
 
-        //- On end - provide feedback about disconnecting from catatyst.
-        virtual bool end();
+        //- Convert channels to vtkMultiBlockDataSet outputs
+        virtual bool convert(dataQuery& dataq, outputChannels& outputs);
 
-        //- Update for changes of mesh
-        virtual void updateMesh(const mapPolyMesh& mpm);
-
-        //- Update for mesh point-motion
-        virtual void movePoints(const polyMesh& mesh);
-
+        //- Print information
+        virtual Ostream& print(Ostream& os) const;
 };
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-} // End namespace functionObjects
+} // End namespace catalyst
 } // End namespace Foam
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

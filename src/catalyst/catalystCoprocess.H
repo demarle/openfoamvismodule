@@ -22,136 +22,37 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::catalystCoprocess
+    Foam::catalyst::coprocess
 
 Description
     Low-level interface between OpenFOAM and ParaView Catalyst.
-
-    \code
-    ... initialize catalyst
-
-    ... define a data query for catalyst
-
-    // Data description for co-processing
-    vtkNew<vtkCPDataDescription> descrip;
-
-    // Form data query for catalyst
-    catalystCoprocess::dataQuery dataq(channelNames, runTime, descrip.Get());
-
-    // Query catalyst
-    HashTable<wordHashSet> expecting = adaptor_().query(dataq, fields);
-
-    \endcode
 
 SourceFiles
     catalystCoprocess.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef functionObjects_catalystCoprocess_H
-#define functionObjects_catalystCoprocess_H
+#ifndef catalyst_coprocess_H
+#define catalyst_coprocess_H
 
 #include "className.H"
 #include "wordList.H"
 #include "stringList.H"
-#include "HashSet.H"
+#include "catalystTools.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-// Forward Declarations
-class vtkCPProcessor;
-class vtkCPDataDescription;
-class vtkMultiBlockDataSet;
-template<class T> class vtkSmartPointer;
-
 namespace Foam
 {
-
-// Forward Declarations
-class dictionary;
-class Time;
-class Ostream;
-class catalystCoprocess;
+namespace catalyst
+{
 
 /*---------------------------------------------------------------------------*\
-                      Class catalystCoprocess Declaration
+                     Class catalyst::coprocess Declaration
 \*---------------------------------------------------------------------------*/
 
-class catalystCoprocess
+class coprocess
 {
-public:
-
-    //- Simple structure for time queries
-    struct timeQuery
-    {
-        double timeValue;
-        long   timeIndex;
-        bool   forced;
-
-        constexpr timeQuery
-        (
-            double val,
-            long index,
-            bool forcedOutput=false
-        ) noexcept
-        :
-            timeValue(val),
-            timeIndex(index),
-            forced(forcedOutput)
-        {}
-
-        timeQuery(const Foam::Time& currTime);
-    };
-
-
-    //- Simple structure for data description queries
-    //  The storage for the description is held outside this class
-    class dataQuery
-    :
-        public timeQuery
-    {
-        //- Catalyst channel names to query
-        List<word> channels_;
-        mutable vtkCPDataDescription* descrip_;
-
-    public:
-
-        dataQuery
-        (
-            const UList<word>& channelNames,
-            const timeQuery& when,
-            vtkCPDataDescription* description
-        )
-        :
-            timeQuery(when),
-            channels_(channelNames),
-            descrip_(description)
-        {}
-
-        dataQuery
-        (
-            const UList<word>& channelNames,
-            const Foam::Time& when,
-            vtkCPDataDescription* description
-        )
-        :
-            dataQuery(channelNames, timeQuery(when), description)
-        {}
-
-        //- The declared output channels
-        const UList<word>& channels() const
-        {
-            return channels_;
-        }
-
-        //- Pointer to coprocess data description
-        vtkCPDataDescription* get() const
-        {
-            return this->descrip_;
-        }
-    };
-
-
 private:
 
     // Private Data
@@ -162,29 +63,15 @@ private:
 
     // Private Member Functions
 
-        //- Process single output channel
-        template<class DataType>
-        bool processImpl
-        (
-            const dataQuery& query,
-            vtkSmartPointer<DataType>& outputs
-        );
-
         //- Process multiple output channels
         template<class DataType>
         bool processImpl
         (
-            const dataQuery& query,
-            HashTable<vtkSmartPointer<DataType>>& outputs
+            const dataQuery& dataq,
+            HashTable<vtkSmartPointer<DataType>, fileName>& outputs
         );
 
 public:
-
-    // Static Methods
-
-        //- Expand strings as filenames, retaining only those that exist
-        static label expand(List<string>& scripts, const dictionary& dict);
-
 
     //- Define class name and debug
     ClassName("catalyst");
@@ -193,14 +80,14 @@ public:
     // Constructors
 
         //- Construct null. Does not initialize catalyst.
-        constexpr catalystCoprocess() noexcept
+        constexpr coprocess() noexcept
         :
             coproc_(nullptr)
         {}
 
 
     //- Destructor. Shutdown process.
-    ~catalystCoprocess();
+    ~coprocess();
 
 
     // Member Functions
@@ -225,35 +112,17 @@ public:
         //- iteration and possibly which fields they require.
         //
         // \param[in,out] dataq the data query for catalyst.
-        //     On input it contains the published channel names, the current
-        //     simulation time (index, value) and allocation for the coprocess
-        //     data description.
-        //     On output the data description will be filled with the field
-        //     names added per channel.
-        // \param[in] allFields the fields that can be published from the
-        //     simulation.
+        //     On input it contains the published channel names with their
+        //     published fields, as well as the current simulation time
+        //     (index, value).
+        //     On output the data description part of dataq will be filled
+        //     with the requested field names added per channel.
         //
-        // \return HashTable with fields requested (what Catalyst expects)
-        //     on a per-channel basis.
-        HashTable<wordHashSet> query
-        (
-            dataQuery& dataq,
-            const wordHashSet& allFields
-        );
+        // \return number of channels request at this time
+        label query(dataQuery& dataq);
 
-        //- Single-channel source (eg, "input" or "cloud", ...)
-        bool process
-        (
-            const dataQuery& dataq,
-            vtkSmartPointer<vtkMultiBlockDataSet>& output
-        );
-
-        //- Multi-channel source (eg, "input", "mesh", "patches")
-        bool process
-        (
-            const dataQuery& dataq,
-            HashTable<vtkSmartPointer<vtkMultiBlockDataSet>>& outputs
-        );
+        //- Process the output channels
+        bool process(const dataQuery& dataq, outputChannels& outputs);
 
         //- Finalize
         void stop();
@@ -261,10 +130,9 @@ public:
 };
 
 
-// Ostream Operator
-Ostream& operator<<(Ostream& os, const catalystCoprocess::timeQuery& when);
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-
+} // End namespace catalyst
 } // End namespace Foam
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

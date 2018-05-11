@@ -24,12 +24,10 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "catalystFaMesh.H"
-#include "catalystCoprocess.H"
 #include "addToRunTimeSelectionTable.H"
 #include "faMesh.H"
 #include "fvMesh.H"
 
-#include <vtkNew.h>
 #include <vtkCPDataDescription.h>
 #include <vtkMultiBlockDataSet.h>
 #include <vtkInformation.h>
@@ -38,76 +36,39 @@ License
 
 namespace Foam
 {
-namespace functionObjects
+namespace catalyst
 {
-    defineTypeNameAndDebug(catalystFaMesh, 0);
-    addToRunTimeSelectionTable(functionObject, catalystFaMesh, dictionary);
+    defineTypeNameAndDebug(faMeshInput, 0);
+    addNamedToRunTimeSelectionTable
+    (
+        catalystInput,
+        faMeshInput,
+        dictionary,
+        area
+    );
 }
 }
 
 
 // * * * * * * * * * * * * Protected Member Functions  * * * * * * * * * * * //
 
-bool Foam::functionObjects::catalystFaMesh::readBasics(const dictionary& dict)
+void Foam::catalyst::faMeshInput::update()
 {
-    int debugLevel = 0;
-    if (dict.readIfPresent("debug", debugLevel))
-    {
-        catalystCoprocess::debug = debugLevel;
-    }
+    // Backend requires a corresponding mesh
+    backends_.filterKeys
+    (
+        [this](const word& k){ return meshes_.found(k); }
+    );
 
-    if (Pstream::master())
+    forAllConstIters(meshes_, iter)
     {
-        fileName dir;
-        if (dict.readIfPresent("mkdir", dir))
+        if (!backends_.found(iter.key()))
         {
-            dir.expand();
-            dir.clean();
-        }
-        Foam::mkDir(dir);
-    }
-
-    dict.readIfPresent("outputDir", outputDir_);
-    outputDir_.expand();
-    outputDir_.clean();
-    if (Pstream::master())
-    {
-        Foam::mkDir(outputDir_);
-    }
-
-    dict.lookup("scripts") >> scripts_;         // Python scripts
-    catalystCoprocess::expand(scripts_, dict);  // Expand and check availability
-
-    if (adaptor_.valid())
-    {
-        // Run-time modification of pipeline
-        adaptor_().reset(outputDir_, scripts_);
-    }
-
-    return true;
-}
-
-
-void Foam::functionObjects::catalystFaMesh::updateState
-(
-    polyMesh::readUpdateState state
-)
-{
-    // Trigger change of state
-
-    // Be really paranoid and verify if the mesh actually exists
-    const wordList regionNames(backends_.toc());
-
-    for (const word& regionName : regionNames)
-    {
-        if (meshes_.found(regionName) && time_.found(regionName))
-        {
-            backends_[regionName]->updateState(state);
-        }
-        else
-        {
-            backends_.erase(regionName);
-            meshes_.erase(regionName);
+            backends_.set
+            (
+                iter.key(),
+                new Foam::vtk::faMeshAdaptor(*(iter.object()))
+            );
         }
     }
 }
@@ -115,61 +76,52 @@ void Foam::functionObjects::catalystFaMesh::updateState
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-Foam::functionObjects::catalystFaMesh::catalystFaMesh
+Foam::catalyst::faMeshInput::faMeshInput
 (
     const word& name,
     const Time& runTime,
     const dictionary& dict
 )
 :
-    fvMeshFunctionObject(name, runTime, dict),
-    outputDir_("<case>/insitu"),
-    scripts_(),
-    adaptor_(),
+    catalystInput(name),
+    time_(runTime),
+    regionName_(),
     selectAreas_(),
     selectFields_(),
     meshes_(),
     backends_()
 {
-    if (postProcess)
-    {
-        // Disable for post-process mode.
-        // Emit as FatalError for the try/catch in the caller.
-        FatalError
-            << type() << " disabled in post-process mode"
-            << exit(FatalError);
-    }
     read(dict);
 }
 
 
-// * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
-
-Foam::functionObjects::catalystFaMesh::~catalystFaMesh()
-{}
-
-
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-bool Foam::functionObjects::catalystFaMesh::read(const dictionary& dict)
+bool Foam::catalyst::faMeshInput::read(const dictionary& dict)
 {
-    fvMeshFunctionObject::read(dict);
-
-    readBasics(dict);
-
-    // All possible meshes
-    meshes_ = mesh_.lookupClass<faMesh>();
+    catalystInput::read(dict);
 
     selectAreas_.clear();
+    selectFields_.clear();
+    backends_.clear();
+
+    regionName_ =
+        dict.lookupOrDefault<word>("region", polyMesh::defaultRegion);
+
+    const objectRegistry& obr =
+        time_.lookupObject<objectRegistry>(regionName_);
+
+    // All possible meshes for the given region
+    meshes_ = obr.lookupClass<faMesh>();
+
     dict.readIfPresent("areas", selectAreas_);
 
     if (selectAreas_.empty())
     {
         word areaName;
-
         if (!dict.readIfPresent("area", areaName))
         {
-            wordList available = mesh_.sortedNames<faMesh>();
+            wordList available = obr.sortedNames<faMesh>();
 
             if (available.size())
             {
@@ -185,59 +137,49 @@ bool Foam::functionObjects::catalystFaMesh::read(const dictionary& dict)
     }
 
     // Restrict to specified meshes
-    meshes_.filterKeys(wordRes(selectAreas_));
+    meshes_.filterKeys(selectAreas_);
 
     dict.lookup("fields") >> selectFields_;
-
-    Info<< type() << " " << name() << ":" << nl
-        <<"    areas   " << flatOutput(selectAreas_) << nl
-        <<"    meshes  " << flatOutput(meshes_.sortedToc()) << nl
-        <<"    fields  " << flatOutput(selectFields_) << nl
-        <<"    scripts " << scripts_ << nl;
-
-
-    // Ensure consistency - only retain backends with corresponding mesh region
-    backends_.retain(meshes_);
 
     return true;
 }
 
 
-bool Foam::functionObjects::catalystFaMesh::execute()
+void Foam::catalyst::faMeshInput::update(polyMesh::readUpdateState state)
 {
-    const wordList regionNames(meshes_.sortedToc());
+    // Trigger change of state
 
-    if (regionNames.empty())
-    {
-        return false;
-    }
+    const objectRegistry& obr =
+        time_.lookupObject<objectRegistry>(regionName_);
 
-    // Enforce sanity for backends and adaptor
+    // Be really paranoid and verify if the mesh actually exists
+    const wordList regionNames(backends_.toc());
+
+    for (const word& regionName : regionNames)
     {
-        bool updateAdaptor = false;
-        forAllConstIters(meshes_, iter)
+        if (meshes_.found(regionName) && obr.found(regionName))
         {
-            if (!backends_.found(iter.key()))
-            {
-                backends_.insert
-                (
-                    iter.key(),
-                    new Foam::vtk::faMeshAdaptor(*(iter.object()))
-                );
-                updateAdaptor = true;
-            }
+            backends_[regionName]->updateState(state);
         }
-
-        if (updateAdaptor && !adaptor_.valid())
+        else
         {
-            adaptor_.reset(new catalystCoprocess());
-            adaptor_().reset(outputDir_, scripts_);
+            backends_.erase(regionName);
+            meshes_.erase(regionName);
         }
     }
+}
 
+
+Foam::label Foam::catalyst::faMeshInput::addChannels(dataQuery& dataq)
+{
+    update();   // Enforce sanity for backends and adaptor
+
+    if (backends_.empty())
+    {
+        return 0;
+    }
 
     // Gather all fields that we know how to convert
-
     wordHashSet allFields;
     forAllConstIters(backends_, iter)
     {
@@ -245,96 +187,89 @@ bool Foam::functionObjects::catalystFaMesh::execute()
     }
 
 
-    // Data description for co-processing
-    vtkNew<vtkCPDataDescription> descrip;
+    dataq.set(name(), allFields);
 
-    // Form data query for catalyst
-    catalystCoprocess::dataQuery dataq
-    (
-        vtk::faMeshAdaptor::channelNames.names(),
-        time_,  // timeQuery
-        descrip.Get()
-    );
+    return 1;
+}
 
-    // Query catalyst
-    const HashTable<wordHashSet> expecting(adaptor_().query(dataq, allFields));
 
-    if (catalystCoprocess::debug)
+bool Foam::catalyst::faMeshInput::convert
+(
+    dataQuery& dataq,
+    outputChannels& outputs
+)
+{
+    const wordList regionNames(backends_.sortedToc());
+
+    if (regionNames.empty())
     {
-        if (expecting.empty())
-        {
-            Info<< type() << ": expecting no data" << nl;
-        }
-        else
-        {
-            Info<< type() << ": expecting data " << expecting << nl;
-        }
+        return false;  // skip - not available
     }
 
-    if (expecting.empty())
+    // Single channel only
+
+    label nChannels = 0;
+
+    if (dataq.found(name()))
     {
-        return true;
+        ++nChannels;
     }
 
-    auto output = vtkSmartPointer<vtkMultiBlockDataSet>::New();
+    if (!nChannels)
+    {
+        return false;  // skip - not requested
+    }
+
 
     // TODO: currently don't rely on the results from expecting much at all
 
     // Each region in a separate block
-    unsigned int regionNo = 0;
+    unsigned int blockNo = 0;
     for (const word& regionName : regionNames)
     {
-        auto pieces = backends_[regionName]->output(selectFields_);
+        auto dataset =
+            backends_[regionName]->output(selectFields_);
 
-        output->SetBlock(regionNo, pieces);
+        {
+            const fileName channel = name();
 
-        output->GetMetaData(regionNo)->Set
-        (
-            vtkCompositeDataSet::NAME(),
-            regionName
-        );
-        ++regionNo;
-    }
+            if (dataq.found(channel))
+            {
+                // Get existing or new
+                vtkSmartPointer<vtkMultiBlockDataSet> block =
+                    outputs.lookup
+                    (
+                        channel,
+                        vtkSmartPointer<vtkMultiBlockDataSet>::New()
+                    );
 
-    if (regionNo)
-    {
-        Log << type() << ": send data" << nl;
+                block->SetBlock(blockNo, dataset);
 
-        adaptor_().process(dataq, output);
+                block->GetMetaData(blockNo)->Set
+                (
+                    vtkCompositeDataSet::NAME(),
+                    regionName
+                );
+
+                outputs.set(channel, block);  // overwrites existing
+            }
+        }
+
+        ++blockNo;
     }
 
     return true;
 }
 
 
-bool Foam::functionObjects::catalystFaMesh::write()
+Foam::Ostream& Foam::catalyst::faMeshInput::print(Ostream& os) const
 {
-    return true;
-}
+    os  << name() << nl
+        <<"    areas   " << flatOutput(selectAreas_) << nl
+        <<"    meshes  " << flatOutput(meshes_.sortedToc()) << nl
+        <<"    fields  " << flatOutput(selectFields_) << nl;
 
-
-bool Foam::functionObjects::catalystFaMesh::end()
-{
-    // Only here for extra feedback
-    if (log && adaptor_.valid())
-    {
-        Info<< type() << ": Disconnecting ParaView Catalyst..." << nl;
-    }
-
-    adaptor_.clear();
-    return true;
-}
-
-
-void Foam::functionObjects::catalystFaMesh::updateMesh(const mapPolyMesh&)
-{
-    updateState(polyMesh::TOPO_CHANGE);
-}
-
-
-void Foam::functionObjects::catalystFaMesh::movePoints(const polyMesh&)
-{
-    updateState(polyMesh::POINTS_MOVED);
+    return os;
 }
 
 

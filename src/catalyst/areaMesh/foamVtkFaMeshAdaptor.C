@@ -46,16 +46,6 @@ namespace vtk
 }
 }
 
-const Foam::Enum
-<
-    Foam::vtk::faMeshAdaptor::channel
->
-Foam::vtk::faMeshAdaptor::channelNames
-{
-    { channel::INPUT,   "input" },
-};
-
-
 const Foam::word Foam::vtk::faMeshAdaptor::internalName("internal");
 
 

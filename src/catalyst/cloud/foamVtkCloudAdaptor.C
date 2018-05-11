@@ -37,14 +37,13 @@ License
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-const Foam::Enum
-<
-    Foam::vtk::cloudAdaptor::channel
->
-Foam::vtk::cloudAdaptor::channelNames
+namespace Foam
 {
-    { channel::CLOUD, "cloud" },
-};
+namespace vtk
+{
+    defineTypeNameAndDebug(cloudAdaptor, 0);
+}
+}
 
 
 // * * * * * * * * * * * * * Static Member Functions * * * * * * * * * * * * //

@@ -28,11 +28,6 @@ License
 
 // OpenFOAM includes
 #include "error.H"
-#include "emptyFvPatchField.H"
-#include "wallPolyPatch.H"
-#include "volPointInterpolation.H"
-#include "zeroGradientFvPatchField.H"
-#include "interpolatePointToCell.H"
 
 // vtk includes
 #include "vtkFloatArray.h"

@@ -24,8 +24,6 @@ License
 
 #include "catalystCoprocess.H"
 #include "Time.H"
-#include "stringOps.H"
-#include "OSspecific.H"
 
 // VTK includes
 #include <vtkNew.h>
@@ -42,135 +40,38 @@ License
 
 namespace Foam
 {
-    defineTypeNameAndDebug(catalystCoprocess, 0);
+namespace catalyst
+{
+    defineTypeNameAndDebug(coprocess, 0);
 }
-
-
-// * * * * * * * * * * * * * * * Local Functions * * * * * * * * * * * * * * //
-
-namespace Foam
-{
-namespace
-{
-
-#if 0
-static void printInfo(vtkCPDataDescription* descrip)
-{
-    if (!descrip)
-    {
-        return;
-    }
-
-    const unsigned nItems = descrip->GetNumberOfInputDescriptions();
-
-    for (unsigned itemi = 0; itemi < nItems; ++itemi)
-    {
-        vtkCPInputDataDescription* input = descrip->GetInputDescription(itemi);
-        if (!input) continue;  // should not happen
-
-        Info<<"input: " << descrip->GetInputDescriptionName(itemi) << nl;
-
-        const unsigned nFields = input->GetNumberOfFields();
-        for (unsigned fieldi = 0; fieldi < nFields; ++fieldi)
-        {
-            Info<< "    field: " << input->GetFieldName(fieldi) << nl;
-        }
-        if (!nFields) Info<<"     no fields requested" << nl;
-    }
-}
-#endif
-
-} // End anonymous namespace
-} // End namespace Foam
-
-
-// * * * * * * * * * * * * * Static Member Functions * * * * * * * * * * * * //
-
-Foam::label Foam::catalystCoprocess::expand
-(
-    List<string>& scripts,
-    const dictionary& dict
-)
-{
-    label nscript = 0;
-
-    forAll(scripts, scripti)
-    {
-        string& s = scripts[scripti];
-
-        stringOps::inplaceExpand(s, dict, true, true);
-        fileName::clean(s);  // Remove trailing, repeated slashes etc.
-
-        if (isFile(s))
-        {
-            if (nscript != scripti)
-            {
-                scripts[nscript] = std::move(s);
-            }
-            ++nscript;
-        }
-    }
-
-    scripts.resize(nscript);
-
-    return nscript;
 }
 
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
 template<class DataType>
-bool Foam::catalystCoprocess::processImpl
+bool Foam::catalyst::coprocess::processImpl
 (
     const dataQuery& dataq,
-    vtkSmartPointer<DataType>& output
+    HashTable<vtkSmartPointer<DataType>, fileName>& outputs
 )
 {
-    vtkCPDataDescription* descrip = dataq.get();
+    auto* descrip = dataq.description();
 
     if (!coproc_->RequestDataDescription(descrip))
     {
         return false;
     }
 
-    for (const word& chanName : dataq.channels())
+    for (const fileName& channel : dataq.names())
     {
-        auto* input = descrip->GetInputDescriptionByName(chanName.c_str());
-
-        if (input && input->GetIfGridIsNecessary())
+        if (outputs.found(channel))
         {
-            input->SetGrid(output);
-        }
-    }
-
-    coproc_->CoProcess(descrip);
-    return true;
-}
-
-
-template<class DataType>
-bool Foam::catalystCoprocess::processImpl
-(
-    const dataQuery& dataq,
-    HashTable<vtkSmartPointer<DataType>>& outputs
-)
-{
-    vtkCPDataDescription* descrip = dataq.get();
-
-    if (!coproc_->RequestDataDescription(descrip))
-    {
-        return false;
-    }
-
-    for (const word& chanName : dataq.channels())
-    {
-        if (outputs.found(chanName))
-        {
-            auto* input = descrip->GetInputDescriptionByName(chanName.c_str());
+            auto* input = descrip->GetInputDescriptionByName(channel.c_str());
 
             if (input && input->GetIfGridIsNecessary())
             {
-                input->SetGrid(outputs[chanName]);
+                input->SetGrid(outputs[channel]);
             }
         }
     }
@@ -180,21 +81,11 @@ bool Foam::catalystCoprocess::processImpl
 }
 
 
-// * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
-
-Foam::catalystCoprocess::timeQuery::timeQuery(const Foam::Time& t)
-:
-    timeValue(t.timeOutputValue()),
-    timeIndex(t.timeIndex()),
-    forced(t.timeOutputValue() >= t.endTime().value())
-{}
-
-
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-Foam::catalystCoprocess::~catalystCoprocess()
+Foam::catalyst::coprocess::~coprocess()
 {
-    // stop(), but without output
+    // As per stop(), but without output
     if (coproc_)
     {
         coproc_->Delete();
@@ -205,13 +96,13 @@ Foam::catalystCoprocess::~catalystCoprocess()
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-bool Foam::catalystCoprocess::good() const
+bool Foam::catalyst::coprocess::good() const
 {
     return coproc_;
 }
 
 
-void Foam::catalystCoprocess::stop()
+void Foam::catalyst::coprocess::stop()
 {
     if (coproc_)
     {
@@ -222,7 +113,7 @@ void Foam::catalystCoprocess::stop()
 }
 
 
-void Foam::catalystCoprocess::reset(const fileName& outputDir)
+void Foam::catalyst::coprocess::reset(const fileName& outputDir)
 {
     #ifdef USE_CATALYST_WORKING_DIRECTORY
     if (coproc_ == nullptr)
@@ -253,6 +144,7 @@ void Foam::catalystCoprocess::reset(const fileName& outputDir)
     {
         coproc_ = vtkCPProcessor::New();
         coproc_->Initialize();
+        Info<< "Connecting ParaView Catalyst..." << endl;
     }
     else
     {
@@ -265,7 +157,7 @@ void Foam::catalystCoprocess::reset(const fileName& outputDir)
 }
 
 
-void Foam::catalystCoprocess::reset
+void Foam::catalyst::coprocess::reset
 (
     const fileName& outputDir,
     const UList<string>& scripts
@@ -288,138 +180,19 @@ void Foam::catalystCoprocess::reset
 }
 
 
-Foam::HashTable<Foam::wordHashSet>
-Foam::catalystCoprocess::query
-(
-    dataQuery& dataq,
-    const wordHashSet& allFields
-)
+Foam::label Foam::catalyst::coprocess::query(dataQuery& dataq)
 {
-    // Desirable to also know which fields have been requested
-    HashTable<wordHashSet> requests;
-
-    if (!good())
-    {
-        Info<< "No ParaView Catalyst initialized" << endl;
-        return requests;
-    }
-
-    if (dataq.channels().empty())
-    {
-        // No channels names have been published by the simulation
-        return requests;
-    }
-
-    vtkCPDataDescription* descrip = dataq.get();
-
-    descrip->SetTimeData(dataq.timeValue, dataq.timeIndex);
-    descrip->SetForceOutput(dataq.forced);
-
-    // Sort out which channels already exist, are new, or disappeared
-    {
-        // The currently defined channels
-        wordHashSet currChannels;
-
-        const unsigned n = descrip->GetNumberOfInputDescriptions();
-        for (unsigned i=0; i < n; ++i)
-        {
-            currChannels.insert
-            (
-                word::validate(descrip->GetInputDescriptionName(i))
-            );
-        }
-
-        wordHashSet newChannels(dataq.channels());
-        wordHashSet oldChannels(currChannels);
-        oldChannels.erase(newChannels);
-
-        if (oldChannels.size())
-        {
-            descrip->ResetAll();
-        }
-        else
-        {
-            newChannels.erase(currChannels);
-        }
-
-        // Add channels
-        for (const word& chanName : newChannels)
-        {
-            descrip->AddInput(chanName.c_str());
-            auto* input = descrip->GetInputDescriptionByName(chanName.c_str());
-
-            for (const word& fieldName : allFields)
-            {
-                input->AddPointField(fieldName.c_str());
-                input->AddCellField(fieldName.c_str());
-            }
-        }
-
-        // Note: this misses updating field information for previously
-        // existing inputs.
-    }
-
-    if
-    (
-        !coproc_->RequestDataDescription(descrip)
-     || !descrip->GetIfAnyGridNecessary()
-    )
-    {
-        return requests;
-    }
-
-    for (const word& chanName : dataq.channels())
-    {
-        auto* input = descrip->GetInputDescriptionByName(chanName.c_str());
-
-        if (input && input->GetIfGridIsNecessary())
-        {
-            wordHashSet& fields = requests(chanName);  // auto-vivify
-
-            for (const word& fieldName : allFields)
-            {
-                if (input->IsFieldNeeded(fieldName.c_str()))
-                {
-                    fields.insert(fieldName);
-                }
-            }
-        }
-    }
-
-    return requests;
+    return dataq.query(coproc_);
 }
 
 
-bool Foam::catalystCoprocess::process
+bool Foam::catalyst::coprocess::process
 (
     const dataQuery& dataq,
-    vtkSmartPointer<vtkMultiBlockDataSet>& output
-)
-{
-    return processImpl(dataq, output);
-}
-
-
-bool Foam::catalystCoprocess::process
-(
-    const dataQuery& dataq,
-    HashTable<vtkSmartPointer<vtkMultiBlockDataSet>>& outputs
+    outputChannels& outputs
 )
 {
     return processImpl(dataq, outputs);
-}
-
-
-// * * * * * * * * * * * * * * * Ostream Operator  * * * * * * * * * * * * * //
-
-Foam::Ostream& Foam::operator<<
-(
-    Ostream& os,
-    const catalystCoprocess::timeQuery& when
-)
-{
-    os << "Time = " << when.timeValue << ", index: " << when.timeIndex;
-    return os;
 }
 
 

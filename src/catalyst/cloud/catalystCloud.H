@@ -22,54 +22,37 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::functionObjects::catalystCloud
-
-Group
-    grpUtilitiesFunctionObjects
+    Foam::catalystCloud
 
 Description
-    A Paraview Catalyst adaptor for a single OpenFOAM cloud (lagrangian).
+    A Paraview Catalyst source for OpenFOAM clouds (lagrangian).
 
-    The output comprises a single "cloud" channel, which is a multi-block
-    dataset (one block per cloud).
+    The source comprises a single internal "cloud" channel,
+    which is a multi-block dataset (one block per cloud).
+    On output, the "cloud" sub-channel receives the name of the source.
 
-    Example of function object specification:
+    Example specification:
     \verbatim
-    catalystCloud1
+    myCloud
     {
-        type            catalyst::cloud;
-        libs            ("libcatalystFoam.so");
+        type            cloud;
         cloud           NAME;
         fields          (U T rho);
-        scripts         ( ... );
-        executeControl  timeStep;
-        executeInterval 1;
     }
     \endverbatim
 
 Usage
     \table
-        Property     | Description                 | Required    | Default value
-        type         | catalyst::cloud             | yes         |
-        log          | report extra information    | no          | false
-        mkdir        | initial directory to create | no          |
+        Property     | Description                 | Required    | Default
+        type         | cloud                       | yes         |
+        region       |                             | no          | region0
         cloud        |                             | no          | defaultCloud
         clouds       | wordRe list of clouds       | no          |
-        region       |                             | no          | region0
-        regions      | wordRe list of regions      | no          |
         fields       | wordRe list of fields       | yes         |
-        scripts      | Python pipeline scripts     | yes         |
     \endtable
 
-Note
-    The execution frequency can be defined by the functionObject and
-    by the Catalyst pipeline.
-
 See also
-    Foam::functionObjects::functionObject
-    Foam::functionObjects::fvMeshFunctionObject
-    Foam::functionObjects::timeControl
-    Foam::catalystCoprocess
+    Foam::catalyst::catalystInput
     Foam::vtk::cloudAdaptor
 
 SourceFiles
@@ -78,45 +61,36 @@ SourceFiles
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef functionObjects_catalystCloud_H
-#define functionObjects_catalystCloud_H
+#ifndef catalyst_cloudInput_H
+#define catalyst_cloudInput_H
 
-#include "fvMeshFunctionObject.H"
 #include "wordRes.H"
+#include "catalystInput.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
-
-// Forward declarations
-
-class catalystCoprocess;
-
-namespace functionObjects
+namespace catalyst
 {
 
 /*---------------------------------------------------------------------------*\
-                        Class catalystCloud Declaration
+                    Class catalyst::cloudInput Declaration
 \*---------------------------------------------------------------------------*/
 
-class catalystCloud
+class cloudInput
 :
-    public fvMeshFunctionObject
+    public catalystInput
 {
 protected:
 
     // Protected data
 
-        //- The output directory
-        fileName outputDir_;
+        //- Reference to the time database
+        const Time& time_;
 
-        //- Python scripts for the catalyst pipeline
-        stringList scripts_;
-
-        //- The catalyst coprocess
-        autoPtr<catalystCoprocess> adaptor_;
-
+        //- The region name for the clouds
+        word regionName_;
 
         //- Requested names of clouds to process
         wordRes selectClouds_;
@@ -127,26 +101,22 @@ protected:
 
     // Protected Member Functions
 
-        //- Common boilerplate settings
-        bool readBasics(const dictionary& dict);
-
-
         //- No copy construct
-        catalystCloud(const catalystCloud&) = delete;
+        cloudInput(const cloudInput&) = delete;
 
         //- No copy assignment
-        void operator=(const catalystCloud&) = delete;
+        void operator=(const cloudInput&) = delete;
 
 public:
 
     //- Runtime type information
-    TypeName("catalyst::cloud");
+    ClassName("catalyst::cloud");
 
 
     // Constructors
 
         //- Construct from Time and dictionary
-        catalystCloud
+        cloudInput
         (
             const word& name,
             const Time& runTime,
@@ -155,7 +125,7 @@ public:
 
 
     //- Destructor
-    virtual ~catalystCloud();
+    virtual ~cloudInput() = default;
 
 
     // Member Functions
@@ -163,20 +133,20 @@ public:
         //- Read the specification
         virtual bool read(const dictionary& dict);
 
-        //- Execute catalyst pipelines
-        virtual bool execute();
+        //- Add available channels (with fields) to data query
+        virtual label addChannels(dataQuery& dataq);
 
-        //- Write - does nothing
-        virtual bool write();
+        //- Convert channels to vtkMultiBlockDataSet outputs
+        virtual bool convert(dataQuery& dataq, outputChannels& outputs);
 
-        //- On end - provide feedback about disconnecting from catatyst.
-        virtual bool end();
+        //- Print information
+        virtual Ostream& print(Ostream& os) const;
 };
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-} // End namespace functionObjects
+} // End namespace catalyst
 } // End namespace Foam
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

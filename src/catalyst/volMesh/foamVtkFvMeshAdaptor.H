@@ -184,6 +184,12 @@ private:
         //  There will be several for groups, but only one for regular patches.
         void convertGeometryPatches();
 
+        //- Ghost cells - internal mesh
+        void applyGhostingInternal(const labelUList& types);
+
+        //- Ghost cells - patches
+        void applyGhostingPatches(const labelUList& types);
+
         //- Ghost cells to affect the visibility of the geometry.
         //  Currently only used for overset.
         void applyGhosting();

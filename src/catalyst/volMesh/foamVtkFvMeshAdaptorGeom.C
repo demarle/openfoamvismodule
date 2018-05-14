@@ -56,7 +56,7 @@ void Foam::vtk::fvMeshAdaptor::convertGeometryInternal()
             {
                 Info<< "reuse " << longName << nl;
             }
-            vtuData.reuse(); // reuse
+            vtuData.reuse();  // No movement - simply reuse
             return;
         }
         else if (meshState_ == polyMesh::POINTS_MOVED)
@@ -87,6 +87,8 @@ void Foam::vtk::fvMeshAdaptor::convertGeometryInternal()
 
 void Foam::vtk::fvMeshAdaptor::convertGeometryPatches()
 {
+    // PATCHES
+
     const polyBoundaryMesh& patches = mesh_.boundaryMesh();
     const label npatches = this->nPatches();
 
@@ -102,28 +104,22 @@ void Foam::vtk::fvMeshAdaptor::convertGeometryPatches()
         {
             if (meshState_ == polyMesh::UNCHANGED)
             {
-                // Without movement is easy.
                 if (debug)
                 {
                     Info<< "reuse " << longName << nl;
                 }
-                vtpData.reuse();
+                vtpData.reuse();  // No movement - simply reuse
                 continue;
             }
             else if (meshState_ == polyMesh::POINTS_MOVED)
             {
-                // Point movement on single patch is OK
-
-                const labelList& patchIds = vtpData.additionalIds();
-                if (patchIds.size() == 1)
+                // Point movement on single patch
+                if (debug)
                 {
-                    vtkgeom = vtpData.getCopy();
-                    vtkgeom->SetPoints
-                    (
-                        vtk::Tools::Patch::points(patches[patchIds[0]])
-                    );
-                    continue;
+                    Info<< "move points " << longName << nl;
                 }
+                vtkgeom = vtpData.getCopy();
+                vtkgeom->SetPoints(vtk::Tools::Patch::points(pp));
             }
         }
 
@@ -135,13 +131,13 @@ void Foam::vtk::fvMeshAdaptor::convertGeometryPatches()
                 << longName << endl;
         }
 
-        // Store good patch id as additionalIds
-        vtpData.additionalIds() = {patchId};
+        // Unused information
+        vtpData.additionalIds().clear();
 
         // This is somewhat inconsistent, since we currently only have
         // normal (non-grouped) patches but this may change in the future.
 
-        vtkgeom = vtk::Tools::Patch::mesh(patches[patchId]);
+        vtkgeom = vtk::Tools::Patch::mesh(pp);
 
         if (vtkgeom)
         {
@@ -156,22 +152,11 @@ void Foam::vtk::fvMeshAdaptor::convertGeometryPatches()
 }
 
 
-// These need to be rebuild here, since the component mesh may just have point
-// motion without topology changes.
-void Foam::vtk::fvMeshAdaptor::applyGhosting()
+void Foam::vtk::fvMeshAdaptor::applyGhostingInternal(const labelUList& types)
 {
-    if (!usingVolume())
-    {
-        return;
-    }
+    // MESH = "internal"
 
-    const auto* stencilPtr =
-        mesh_.lookupObjectPtr<cellCellStencilObject>
-        (
-            cellCellStencilObject::typeName
-        );
-
-    if (!stencilPtr)
+    if (types.empty() || !usingVolume())
     {
         return;
     }
@@ -182,12 +167,12 @@ void Foam::vtk::fvMeshAdaptor::applyGhosting()
     if (!iter.found() || !iter.object().dataset)
     {
         // Should not happen, but for safety require a vtk geometry
+        Pout<<"Cache miss for VTU " << longName << endl;
         return;
     }
     foamVtuData& vtuData = iter.object();
     auto dataset = vtuData.dataset;
 
-    const auto& stencil = *stencilPtr;
     const labelUList& cellMap = vtuData.cellMap();
 
     auto vtkgcell = dataset->GetCellGhostArray();
@@ -202,25 +187,15 @@ void Foam::vtk::fvMeshAdaptor::applyGhosting()
     //     vtkgpoint = dataset->AllocatePointGhostArray();
     // }
 
-    UList<uint8_t> gcell =
-        vtk::Tools::asUList(vtkgcell, cellMap.size());
+    UList<uint8_t> gcell = vtk::Tools::asUList(vtkgcell, cellMap.size());
 
     vtkgcell->FillValue(0); // Initialize to zero
-
-    const labelUList& types = stencil.cellTypes();
 
     forAll(cellMap, i)
     {
         const label cellType = types[cellMap[i]];
 
-        if (cellType == cellCellStencil::INTERPOLATED)
-        {
-            gcell[i] |=
-            (
-                vtkDataSetAttributes::DUPLICATECELL
-            );
-        }
-        else if (cellType == cellCellStencil::HOLE)
+        if (cellType == cellCellStencil::HOLE)
         {
             // Need duplicate (not just HIDDENCELL) for it to be properly
             // recognized
@@ -230,9 +205,120 @@ void Foam::vtk::fvMeshAdaptor::applyGhosting()
               | vtkDataSetAttributes::HIDDENCELL
             );
         }
+        #if 0
+        // No special treatment for INTERPOLATED.
+        // This causes duplicate/overlapping values, but avoids holes
+        // in the results
+        else if (cellType == cellCellStencil::INTERPOLATED)
+        {
+            gcell[i] |=
+            (
+                vtkDataSetAttributes::DUPLICATECELL
+            );
+        }
+        #endif
     }
 
     dataset->GetCellData()->AddArray(vtkgcell);
+}
+
+
+void Foam::vtk::fvMeshAdaptor::applyGhostingPatches(const labelUList& types)
+{
+    // PATCHES
+
+    if (types.empty())
+    {
+        return;
+    }
+
+    const polyBoundaryMesh& patches = mesh_.boundaryMesh();
+    const label npatches = this->nPatches();
+
+    for (label patchId=0; patchId < npatches; ++patchId)
+    {
+        const polyPatch& pp = patches[patchId];
+        const word& longName = pp.name();
+
+        auto iter = cachedVtp_.find(longName);
+        if (!iter.found() || !iter.object().dataset)
+        {
+            // Should not happen, but for safety require a vtk geometry
+            Pout<<"Cache miss for VTP patch " << longName << endl;
+            continue;
+        }
+
+        foamVtpData& vtpData = iter.object();
+        auto dataset = vtpData.dataset;
+
+        auto vtkgcell = dataset->GetCellGhostArray();
+        if (!vtkgcell)
+        {
+            vtkgcell = dataset->AllocateCellGhostArray();
+        }
+
+
+        // Determine face ghosting based on interior cells
+        const labelUList& bCells = pp.faceCells();
+
+        const label len = bCells.size();
+
+        UList<uint8_t> gcell = vtk::Tools::asUList(vtkgcell, len);
+
+        vtkgcell->FillValue(0); // Initialize to zero
+
+        for (label i=0; i < len; ++i)
+        {
+            const label celli = bCells[i];
+
+            const label cellType = types[celli];
+
+            if (cellType == cellCellStencil::HOLE)
+            {
+                // Need duplicate (not just HIDDENCELL) for it to be properly
+                // recognized
+                gcell[i] |=
+                (
+                    vtkDataSetAttributes::DUPLICATECELL
+                  | vtkDataSetAttributes::HIDDENCELL
+                );
+            }
+            #if 0
+            // No special treatment for INTERPOLATED.
+            // This causes duplicate/overlapping values, but avoids holes
+            // in the results
+            else if (cellType == cellCellStencil::INTERPOLATED)
+            {
+                gcell[i] |=
+                (
+                    vtkDataSetAttributes::DUPLICATECELL
+                );
+            }
+            #endif
+        }
+
+        dataset->GetCellData()->AddArray(vtkgcell);
+    }
+}
+
+
+// These need to be rebuild here, since the component mesh may just have point
+// motion without topology changes.
+void Foam::vtk::fvMeshAdaptor::applyGhosting()
+{
+    const auto* stencilPtr =
+        mesh_.lookupObjectPtr<cellCellStencilObject>
+        (
+            cellCellStencilObject::typeName
+        );
+
+    if (stencilPtr)
+    {
+        const labelUList& types = stencilPtr->cellTypes();
+
+        applyGhostingInternal(types);
+        applyGhostingPatches(types);
+    }
 }
 
 

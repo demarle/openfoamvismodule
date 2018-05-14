@@ -83,17 +83,12 @@ void Foam::vtk::fvMeshAdaptor::convertVolField
         if (!iter.found() || !iter.object().dataset)
         {
             // Should not happen, but for safety require a vtk geometry
+            Pout<<"Cache miss for VTP patch " << longName << endl;
             continue;
         }
 
         foamVtpData& vtpData = iter.object();
         auto dataset = vtpData.dataset;
-
-        const labelList& patchIds = vtpData.additionalIds();
-        if (patchIds.empty())
-        {
-            continue;
-        }
 
         // This is slightly roundabout, but we deal with groups and with
         // single patches.
@@ -111,53 +106,48 @@ void Foam::vtk::fvMeshAdaptor::convertVolField
         );
 
         vtkSmartPointer<vtkFloatArray> pdata;
-        const bool allowPdata = (interpField && patchIds.size() == 1);
 
-        label coffset = 0; // The write offset into cell-data
-        for (label patchId : patchIds)
-        {
-            const fvPatchField<Type>& ptf = fld.boundaryField()[patchId];
+        const fvPatchField<Type>& ptf = fld.boundaryField()[patchId];
 
-            if
+        if
+        (
+            isType<emptyFvPatchField<Type>>(ptf)
+         ||
             (
-                isType<emptyFvPatchField<Type>>(ptf)
-             ||
-                (
-                    extrapPatch
-                 && !polyPatch::constraintType(patches[patchId].type())
-                )
+                extrapPatch
+             && !polyPatch::constraintType(patches[patchId].type())
             )
-            {
-                fvPatch p(ptf.patch().patch(), mesh.boundary());
+        )
+        {
+            fvPatch p(ptf.patch().patch(), mesh.boundary());
 
-                tmp<Field<Type>> tpptf
+            tmp<Field<Type>> tpptf
+            (
+                fvPatchField<Type>(p, fld).patchInternalField()
+            );
+
+            transcribeFloatData(cdata, tpptf());
+
+            if (interpField && patchId < patchInterpList.size())
+            {
+                pdata = vtk::Tools::convertFieldToVTK
                 (
-                    fvPatchField<Type>(p, fld).patchInternalField()
+                    fld.name(),
+                    patchInterpList[patchId].faceToPointInterpolate(tpptf)()
                 );
-
-                coffset += transcribeFloatData(cdata, tpptf(), coffset);
-
-                if (allowPdata && patchId < patchInterpList.size())
-                {
-                    pdata = vtk::Tools::convertFieldToVTK
-                    (
-                        fld.name(),
-                        patchInterpList[patchId].faceToPointInterpolate(tpptf)()
-                    );
-                }
             }
-            else
-            {
-                coffset += transcribeFloatData(cdata, ptf, coffset);
+        }
+        else
+        {
+            transcribeFloatData(cdata, ptf);
 
-                if (allowPdata && patchId < patchInterpList.size())
-                {
-                    pdata = vtk::Tools::convertFieldToVTK
-                    (
-                        fld.name(),
-                        patchInterpList[patchId].faceToPointInterpolate(ptf)()
-                    );
-                }
+            if (interpField && patchId < patchInterpList.size())
+            {
+                pdata = vtk::Tools::convertFieldToVTK
+                (
+                    fld.name(),
+                    patchInterpList[patchId].faceToPointInterpolate(ptf)()
+                );
             }
         }
 
@@ -214,6 +204,7 @@ void Foam::vtk::fvMeshAdaptor::convertVolFieldInternal
     if (!iter.found() || !iter.object().dataset)
     {
         // Should not happen, but for safety require a vtk geometry
+        Pout<<"Cache miss for VTU " << longName << endl;
         return;
     }
     foamVtuData& vtuData = iter.object();

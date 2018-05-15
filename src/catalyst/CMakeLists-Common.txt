@@ -20,8 +20,8 @@ link_directories(
 )
 
 add_definitions(
-    -DWM_$ENV{WM_PRECISION_OPTION} -DNoRepository
-    -DWM_LABEL_SIZE=$ENV{WM_LABEL_SIZE}
+    -DWM_$ENV{WM_PRECISION_OPTION} -DWM_LABEL_SIZE=$ENV{WM_LABEL_SIZE}
+    -DNoRepository
 )
 
 set(CMAKE_BUILD_TYPE Release)
@@ -29,29 +29,27 @@ set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_CXX_FLAGS_DEBUG
     "-g -O0 -std=c++11 -Wall -Wextra -Wno-unused-parameter -Wnon-virtual-dtor -Wno-overloaded-virtual"
 )
-set(CMAKE_C_FLAGS_DEBUG "-g -O0 -std=c++11")
-
 set(CMAKE_CXX_FLAGS_RELEASE
-    "-O3 -std=c++11 -Wall -Wextra -Wno-unused-parameter -Wnon-virtual-dtor -Wno-overloaded-virtual")
-set(CMAKE_C_FLAGS_RELEASE "-O3 -std=c++11")
+    "-O3 -std=c++11 -Wall -Wextra -Wno-unused-parameter -Wnon-virtual-dtor -Wno-overloaded-virtual"
+)
 
 # Some characteristics
 set(test_file ${CMAKE_CURRENT_BINARY_DIR}/check_initialize.cxx)
 file(WRITE ${test_file}
-  "#include <vtkCPProcessor.h>\n"
-  "int main() {\n"
-  "  vtkCPProcessor* p = vtkCPProcessor::New();\n"
-  "  p->Initialize(\"AAA\");\n"
-  "  p->Delete();\n"
-  "  return 0;\n"
-  "}")
+    "#include <vtkCPProcessor.h>\n"
+    "int main() {\n"
+    "  vtkCPProcessor* p = vtkCPProcessor::New();\n"
+    "  p->Initialize(\"AAA\");\n"
+    "  p->Delete();\n"
+    "  return 0;\n"
+    "}"
+)
 try_compile(CATALYST_HAS_WORKING_DIRECTORY
-  ${CMAKE_CURRENT_BINARY_DIR} ${test_file}
-  LINK_LIBRARIES vtkPVPythonCatalyst
-  CMAKE_FLAGS "-DINCLUDE_DIRECTORIES=${PARAVIEW_INCLUDE_DIRS}"
-  )
+    ${CMAKE_CURRENT_BINARY_DIR} ${test_file}
+    CMAKE_FLAGS "-DINCLUDE_DIRECTORIES=${PARAVIEW_INCLUDE_DIRS}"
+)
 if (CATALYST_HAS_WORKING_DIRECTORY)
-  add_definitions(-DUSE_CATALYST_WORKING_DIRECTORY)
+    add_definitions(-DUSE_CATALYST_WORKING_DIRECTORY)
 endif()
 
 
@@ -94,6 +92,13 @@ set(OPENFOAM_LIBRARIES
     overset
 )
 
+
+if (PARAVIEW_USE_MPI)
+    set(LINK_LIBRARIES vtkPVPythonCatalyst vtkParallelMPI)
+else()
+    set(LINK_LIBRARIES vtkPVPythonCatalyst)
+endif()
+
 add_library(
     catalystFoam
     SHARED
@@ -102,7 +107,7 @@ add_library(
 
 target_link_libraries(
     catalystFoam
-    vtkPVPythonCatalyst vtkParallelMPI
+    ${LINK_LIBRARIES}
     ${OPENFOAM_LIBRARIES}
 )
 

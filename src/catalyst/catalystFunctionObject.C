@@ -224,7 +224,8 @@ bool Foam::functionObjects::catalystFunctionObject::read(const dictionary& dict)
     else
     {
         Info<< type() << " " << name() << ":" << nl
-            << "    scripts " << scripts_ << nl
+            << "    output: " << outputDir_ << nl
+            << "    scripts: " << scripts_ << nl
             << "    inputs:" << nl
             << "(" << nl;
 

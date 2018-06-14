@@ -98,7 +98,7 @@ Foam::vtk::cloudAdaptor::getCloudImpl
 
     auto output = vtkSmartPointer<vtkMultiPieceDataSet>::New();
 
-    auto objPtr = mesh.lookupObjectPtr<cloud>(cloudName);
+    const auto* objPtr = mesh.lookupObjectPtr<cloud>(cloudName);
     if (!objPtr)
     {
         return output;
@@ -126,12 +126,27 @@ Foam::vtk::cloudAdaptor::getCloudImpl
     {
         vtkmesh = startLagrangian(*pointsPtr);
 
-        convertLagrangianFields<label>(vtkmesh, obrTmp, matcher);
-        convertLagrangianFields<scalar>(vtkmesh, obrTmp, matcher);
-        convertLagrangianFields<vector>(vtkmesh, obrTmp, matcher);
+        // Prevent any possible conversion of positions as a field
+        obrTmp.filterKeys
+        (
+            [](const word& k)
+            {
+                return k.startsWith("position")
+                    || k.startsWith("coordinate");
+            },
+            true  // prune
+        );
+
+        // Restrict to specified fields
+        obrTmp.filterKeys(matcher);
+
+        convertLagrangianFields<label>(vtkmesh, obrTmp);
+        convertLagrangianFields<scalar>(vtkmesh, obrTmp);
+        convertLagrangianFields<vector>(vtkmesh, obrTmp);
     }
     else
     {
+        // This should never occur
         vtkmesh = vtkSmartPointer<vtkPolyData>::New();
     }
 

@@ -30,32 +30,14 @@ License
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
-template<class Type, class UnaryMatchPredicate>
+template<class Type>
 Foam::label Foam::vtk::cloudAdaptor::convertLagrangianFields
 (
     vtkPolyData* vtkmesh,
-    const objectRegistry& obr,
-    const UnaryMatchPredicate& pred
+    const objectRegistry& obr
 )
 {
-    label nFields = 0;
-
-    wordHashSet names(obr.names<IOField<Type>>());
-
-    // Restrict to specified names
-    names.filterKeys(pred);
-
-    // Avoid converting particle positions as a field too.
-    names.filterKeys
-    (
-        [](const word& k)
-        {
-            return k.startsWith("position") || k.startsWith("coordinate");
-        },
-        true  // prune
-    );
-
-    const wordList fieldNames(names.sortedToc());
+    const wordList fieldNames(obr.sortedNames<IOField<Type>>());
 
     for (const word& fieldName : fieldNames)
     {
@@ -71,11 +53,9 @@ Foam::label Foam::vtk::cloudAdaptor::convertLagrangianFields
         // Provide identical data as cell and as point data
         vtkmesh->GetCellData()->AddArray(data);
         vtkmesh->GetPointData()->AddArray(data);
-
-        ++nFields;
     }
 
-    return nFields;
+    return fieldNames.size();
 }
 
 

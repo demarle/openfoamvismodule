@@ -77,12 +77,11 @@ class cloudAdaptor
         );
 
         //- Lagrangian fields from objectRegistry
-        template<class Type, class UnaryPredicate>
+        template<class Type>
         static label convertLagrangianFields
         (
             vtkPolyData* vtkmesh,
-            const objectRegistry& obr,
-            const UnaryPredicate& pred
+            const objectRegistry& obr
         );
 
         //- Get cloud with point/cell data

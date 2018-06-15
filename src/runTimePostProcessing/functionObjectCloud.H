@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2015-2016 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2015-2018 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -74,12 +74,14 @@ protected:
         //- Name of functionObjectCloud
         word cloudName_;
 
+        //- The input filename used
+        fileName inputFileName_;
+
         //- Name of field to colour by
         word colourFieldName_;
 
         //- Actor
         vtkSmartPointer<vtkActor> actor_;
-
 
 public:
 

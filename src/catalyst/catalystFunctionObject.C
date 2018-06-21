@@ -28,6 +28,7 @@ License
 #include "stringOps.H"
 #include "OSHA1stream.H"
 #include "OSspecific.H"
+#include "sigFpe.H"
 #include "addToRunTimeSelectionTable.H"
 
 #include <vtkCPDataDescription.h>
@@ -77,6 +78,23 @@ Foam::label Foam::functionObjects::catalystFunctionObject::expand
             }
             ++nscript;
         }
+    }
+
+    const label nbad = (scripts.size() - nscript);
+
+    if (nbad)
+    {
+        Warning
+            << nl
+            << "Could not resolve " << nbad << " of " << scripts.size()
+            << " catalyst scripts - check your input" << nl << nl;
+    }
+
+    if (!nscript)
+    {
+        Warning
+            << nl
+            << "No catalyst scripts resolved - check your input" << nl << nl;
     }
 
     scripts.resize(nscript);
@@ -252,6 +270,12 @@ bool Foam::functionObjects::catalystFunctionObject::execute()
         return false;
     }
 
+    // Disable any floating point trapping so that errors in
+    // Catalyst pipelines do not kill the simulation
+    // TODO: report that errors occurred?
+
+    sigFpe::ignore sigFpeHandling; //<- disable in local scope
+
     if (!adaptor_.valid())
     {
         adaptor_.reset(new catalyst::coprocess());
@@ -294,6 +318,11 @@ bool Foam::functionObjects::catalystFunctionObject::execute()
 
         adaptor_().process(dataq, outputs);
     }
+
+
+    // Avoid compiler complaint about unused variable.
+    // - manually restore old SIGFPE state
+    sigFpeHandling.restore();
 
     return true;
 }

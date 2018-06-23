@@ -56,11 +56,11 @@ else()
 endif()
 
 
-# Set output library destination to OpenFOAM library directory
-set(LIBRARY_OUTPUT_PATH $ENV{FOAM_LIBBIN}
+set(LIBRARY_OUTPUT_PATH ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}
     CACHE INTERNAL
     ""
 )
+
 
 file(GLOB SOURCE_FILES
     catalystCoprocess.C
@@ -85,12 +85,12 @@ file(GLOB SOURCE_FILES
 
 set(OPENFOAM_LIBRARIES
     OpenFOAM
+    Pstream
     finiteArea
     finiteVolume
     fileFormats
-    conversion
-    Pstream
     meshTools
+    conversion
     lagrangian
     overset
 )

@@ -292,12 +292,24 @@ bool Foam::functionObjects::catalystFunctionObject::execute()
 
     if (nChannels)
     {
+        if (catalyst::coprocess::debug > 1)
+        {
+            Pout<< type() << ": query catalyst for " << nChannels
+                << " channels" << nl;
+        }
+
         nChannels = adaptor_().query(dataq);
     }
 
-    if (catalyst::coprocess::debug)
+    if (catalyst::coprocess::debug > 1)
     {
-        Info<< type() << ": expecting data for " << nChannels << nl;
+        Pout<< type() << ": query catalyst for " << nChannels
+            << " channels" << nl;
+    }
+    else if (catalyst::coprocess::debug)
+    {
+        Info<< type() << ": expecting data for " << nChannels
+            << " channels" << nl;
     }
 
     if (!nChannels)
@@ -307,9 +319,20 @@ bool Foam::functionObjects::catalystFunctionObject::execute()
 
     catalyst::outputChannels outputs;
 
+    if (catalyst::coprocess::debug > 1)
+    {
+        Pout<< type() << ": converting input" << nl;
+    }
+
     for (auto& inp : inputs_)
     {
         inp.convert(dataq, outputs);
+    }
+
+    if (catalyst::coprocess::debug > 1)
+    {
+        Pout<< type() << ": sending data for" << outputs.size()
+            << " outputs" << nl;
     }
 
     if (outputs.size())
@@ -317,6 +340,12 @@ bool Foam::functionObjects::catalystFunctionObject::execute()
         Log << type() << ": send data" << nl;
 
         adaptor_().process(dataq, outputs);
+    }
+
+
+    if (catalyst::coprocess::debug > 1)
+    {
+        Pout<< type() << ": done step" << nl;
     }
 
 

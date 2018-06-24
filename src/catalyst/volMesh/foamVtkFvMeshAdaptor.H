@@ -28,13 +28,16 @@ Description
     The backend for the catalystFvMesh function object.
 
     The output is a multi-block dataset with two blocks corresponding
-    to the internal (volume) mesh (block 0) and the patches as (block 1).
-    These two blocks correspond simultaneously to the catalyst channels
-    "mesh" and "patches", respectively.
+    to the internal (volume) mesh (block 0) and the boundary (block 1),
+    which are further divided into sub-blocks for each patch.
 
-    The patches are further divided into sub-blocks. The lowest data blocks
-    are multi-piece datasets (UnstructuredGrid and PolyData for internal mesh
-    and patches, respectively) with each piece corresponding to its MPI rank.
+    The lowest data blocks are multi-piece datasets (UnstructuredGrid
+    and PolyData for internal mesh and boundary, respectively) with
+    each piece corresponding to its MPI rank.
+
+Note
+    It is possible to restrict the output of the blocks (eg, patches only)
+    by specifying the appropriate "channels" prior to conversion.
 
 SourceFiles
     foamVtkFvMeshAdaptor.C
@@ -49,13 +52,12 @@ SourceFiles
 #define foamvtk_fvMeshAdaptor_H
 
 #include "className.H"
-#include "fileName.H"
-#include "stringList.H"
 #include "wordList.H"
 #include "Enum.H"
 #include "primitivePatch.H"
 #include "PrimitivePatchInterpolation.H"
 #include "volPointInterpolation.H"
+
 #include "foamVtkTools.H"
 #include "foamVtkMeshMaps.H"
 
@@ -96,19 +98,29 @@ public:
 
         //- Public Data Members
 
-        //- The Catalyst output channels
-        enum channel
+        //- The types of output blocks. Defined as a bitmask.
+        enum channelType : unsigned
         {
-            NONE = 0,
-            MESH = 0x1,
-            PATCHES = 0x2,
-            INPUT = 0x3
+            NONE = 0,           //!< No output (placeholder).
+            INTERNAL = 0x1,     //!< Internal mesh.
+            BOUNDARY = 0x2,     //!< Boundary patches.
+            ALL = 0x3,          //!< Both internal mesh and boundary patches.
+            DEFAULT = ALL       //!< Default is ALL
         };
 
-        static const Enum<channel> channelNames;
+        static const Enum<channelType> channelNames;
 
         //- Name for internal mesh ("internal")
-        static const word internalName;
+        static const word& internalName()
+        {
+            return channelNames[channelType::INTERNAL];
+        }
+
+        //- Name for the boundary ("boundary")
+        static const word& boundaryName()
+        {
+            return channelNames[channelType::BOUNDARY];
+        }
 
 
 private:
@@ -161,7 +173,14 @@ private:
         //- Selected output channels
         unsigned channels_;
 
-        //- Previous/current decomposition request
+        //- Interpolate volume to point fields (default: true)
+        //  Generates PointData in VTK
+        bool interpFields_;
+
+        //- Extrapolate the internal field to the boundaries (default: false)
+        bool extrapPatches_;
+
+        //- Previous/current decomposition request (default: false)
         bool decomposePoly_;
 
         //- Track changes in mesh geometry
@@ -182,13 +201,13 @@ private:
         //- Convert patches
         //  Patches may use additionalIds (cached data) with the patch Ids.
         //  There will be several for groups, but only one for regular patches.
-        void convertGeometryPatches();
+        void convertGeometryBoundary();
 
         //- Ghost cells - internal mesh
         void applyGhostingInternal(const labelUList& types);
 
         //- Ghost cells - patches
-        void applyGhostingPatches(const labelUList& types);
+        void applyGhostingBoundary(const labelUList& types);
 
         //- Ghost cells to affect the visibility of the geometry.
         //  Currently only used for overset.
@@ -286,19 +305,22 @@ public:
         //- Define the output channels by name
         void channels(const wordList& chanNames);
 
+        //- Define the output channels by enum
+        void channels(enum channelType chanIds);
+
         //- Define the output channels by value
         void channels(unsigned chanIds);
 
         //- Return the selected output channel ids
         label channels() const;
 
-        //- True if MESH channel is being used
-        bool usingVolume() const;
+        //- True if INTERNAL channel is being used
+        bool usingInternal() const;
 
-        //- True if PATCHES channel is being used
-        bool usingPatches() const;
+        //- True if BOUNDARY channel is being used
+        bool usingBoundary() const;
 
-        //- Number of non-processor patches, when the PATCHES channel is being
+        //- Number of non-processor patches, when the BOUNDARY channel is being
         //- used - otherwise 0.
         label nPatches() const;
 
@@ -307,8 +329,8 @@ public:
 
         void updateState(polyMesh::readUpdateState state);
 
-        //- The output is a pair (MESH/PATCHES channels) of vtk meshes with
-        //- point/cell data.
+        //- The output is a pair (INTERNAL/BOUNDARY channels) of vtk meshes
+        //- with point/cell data.
         vtkSmartPointer<vtkMultiBlockDataSet> output
         (
             const wordRes& selectFields

@@ -22,37 +22,49 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::catalystCloud
+    Foam::catalyst::cloudInput
 
 Description
-    A Paraview Catalyst source for OpenFOAM clouds (lagrangian).
+    An input (source) for Paraview Catalyst from clouds (lagrangian).
 
-    The source comprises a single internal "cloud" channel,
-    which is a multi-block dataset (one block per cloud).
-    On output, the "cloud" sub-channel receives the name of the source.
+    Produces a multi-block dataset with one block per cloud with pieces
+    from each processor.
 
     Example specification:
     \verbatim
-    myCloud
+    someName
     {
-        type            cloud;
-        cloud           NAME;
-        fields          (U T rho);
+        type        cloud;
+        cloud       myCloud;
+        fields      (U T rho);
     }
     \endverbatim
 
 Usage
     \table
-        Property     | Description                 | Required    | Default
-        type         | cloud                       | yes         |
-        region       |                             | no          | region0
-        cloud        |                             | no          | defaultCloud
-        clouds       | wordRe list of clouds       | no          |
-        fields       | wordRe list of fields       | yes         |
+        Property    | Description                           | Required | Default
+        type        | input type: \c cloud                  | yes   |
+        region      | name for a single region              | no    | region0
+        cloud       | name for a single cloud               | no  | defaultCloud
+        clouds      | wordRe list of clouds                 | no    |
+        fields      | wordRe list of fields                 | yes   |
     \endtable
 
+    The output block structure:
+    \verbatim
+    |-- cloud0
+    |   |-- piece0
+    |   |-- ...
+    |   \-- pieceN
+    |-- ...
+    \-- cloudN
+        \-- ...
+    \endverbatim
+
+Note
+    The channel name is that of the defining dictionary.
+
 See also
-    Foam::catalyst::catalystInput
     Foam::vtk::cloudAdaptor
 
 SourceFiles

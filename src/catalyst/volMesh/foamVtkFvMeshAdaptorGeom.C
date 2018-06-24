@@ -36,14 +36,14 @@ License
 
 void Foam::vtk::fvMeshAdaptor::convertGeometryInternal()
 {
-    // MESH = "internal"
-    if (!usingVolume())
+    // INTERNAL
+    if (!usingInternal())
     {
         cachedVtu_.clear();
         return;
     }
 
-    const auto& longName = internalName;
+    const auto& longName = internalName();
 
     foamVtuData& vtuData = cachedVtu_(longName);
 
@@ -85,9 +85,9 @@ void Foam::vtk::fvMeshAdaptor::convertGeometryInternal()
 }
 
 
-void Foam::vtk::fvMeshAdaptor::convertGeometryPatches()
+void Foam::vtk::fvMeshAdaptor::convertGeometryBoundary()
 {
-    // PATCHES
+    // BOUNDARY
 
     const polyBoundaryMesh& patches = mesh_.boundaryMesh();
     const label npatches = this->nPatches();
@@ -154,14 +154,14 @@ void Foam::vtk::fvMeshAdaptor::convertGeometryPatches()
 
 void Foam::vtk::fvMeshAdaptor::applyGhostingInternal(const labelUList& types)
 {
-    // MESH = "internal"
+    // INTERNAL
 
-    if (types.empty() || !usingVolume())
+    if (types.empty() || !usingInternal())
     {
         return;
     }
 
-    const auto& longName = internalName;
+    const auto& longName = internalName();
 
     auto iter = cachedVtu_.find(longName);
     if (!iter.found() || !iter.object().dataset)
@@ -223,11 +223,11 @@ void Foam::vtk::fvMeshAdaptor::applyGhostingInternal(const labelUList& types)
 }
 
 
-void Foam::vtk::fvMeshAdaptor::applyGhostingPatches(const labelUList& types)
+void Foam::vtk::fvMeshAdaptor::applyGhostingBoundary(const labelUList& types)
 {
-    // PATCHES
+    // BOUNDARY
 
-    if (types.empty())
+    if (types.empty() || !usingBoundary())
     {
         return;
     }
@@ -317,7 +317,7 @@ void Foam::vtk::fvMeshAdaptor::applyGhosting()
         const labelUList& types = stencilPtr->cellTypes();
 
         applyGhostingInternal(types);
-        applyGhostingPatches(types);
+        applyGhostingBoundary(types);
     }
 }
 

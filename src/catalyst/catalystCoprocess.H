@@ -68,7 +68,7 @@ private:
         bool processImpl
         (
             const dataQuery& dataq,
-            HashTable<vtkSmartPointer<DataType>, fileName>& outputs
+            HashTable<vtkSmartPointer<DataType>>& outputs
         );
 
 public:

@@ -28,10 +28,7 @@ Group
     grpUtilitiesFunctionObjects
 
 Description
-    A Paraview Catalyst adaptor for OpenFOAM fvMesh regions.
-
-    The output comprises up to three channels ("input", "mesh", "patches"),
-    each of which is a multi-block dataset.
+    A Paraview Catalyst adaptor for OpenFOAM.
 
     Example of function object specification:
     \verbatim
@@ -39,30 +36,42 @@ Description
     {
         type            catalyst;
         libs            ("libcatalystFoam.so");
-        scripts         ( ... );
         executeControl  timeStep;
         executeInterval 1;
 
+        scripts         ( ... );
+
         inputs
         {
-            type        default;
-            regions     ( ".*Solid" )
-            fields      (U p);
+            input1
+            {
+                type    default;
+                regions (".*solid" );
+                fields  (U p);
+            }
+            input2
+            {
+                type    cloud;
+                cloud   someCloud;
+                fields  ( T U p rho );
+            }
         }
     }
     \endverbatim
 
 Usage
     \table
-        Property     | Description                 | Required    | Default
-        type         | catalyst                    | yes         |
-        log          | report extra information    | no          | false
-        mkdir        | initial directory to create | no          |
-        scripts      | Python pipeline scripts     | yes         |
+        Property    | Description                       | Required | Default
+        type        | catalyst                          | yes   |
+        log         | report extra information          | no    | false
+        scripts     | Python pipeline scripts           | yes   |
+        inputs      | dictionary of catalyst inputs     | yes   |
+        outputDir   | the output directory          | no    | "\<case\>/insitu"
+        mkdir       | optional directory to create      | no    |
     \endtable
 
 Note
-    The execution frequency can be defined by the functionObject and
+    The execution frequency can be defined by both the functionObject and
     by the Catalyst pipeline.
 
 See also
@@ -121,7 +130,7 @@ class catalystFunctionObject
         //- The catalyst coprocess
         autoPtr<catalyst::coprocess> adaptor_;
 
-        //- Pointers to the requested mesh regions
+        //- Pointers to the requested catalyst inputs
         PtrList<catalyst::catalystInput> inputs_;
 
 
@@ -132,6 +141,7 @@ class catalystFunctionObject
 
         //- No copy assignment
         void operator=(const catalystFunctionObject&) = delete;
+
 
 public:
 

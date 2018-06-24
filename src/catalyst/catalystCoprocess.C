@@ -44,7 +44,7 @@ namespace catalyst
 {
     defineTypeNameAndDebug(coprocess, 0);
 }
-}
+} // End namespace Foam
 
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
@@ -53,7 +53,7 @@ template<class DataType>
 bool Foam::catalyst::coprocess::processImpl
 (
     const dataQuery& dataq,
-    HashTable<vtkSmartPointer<DataType>, fileName>& outputs
+    HashTable<vtkSmartPointer<DataType>>& outputs
 )
 {
     auto* descrip = dataq.description();
@@ -63,7 +63,7 @@ bool Foam::catalyst::coprocess::processImpl
         return false;
     }
 
-    for (const fileName& channel : dataq.names())
+    for (const word& channel : dataq.names())
     {
         if (outputs.found(channel))
         {

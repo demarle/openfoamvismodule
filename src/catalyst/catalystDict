@@ -11,8 +11,11 @@ catalyst
     // ^^^^^
     // #includeEtc "caseDicts/insitu/catalyst/catalyst.cfg"
 
-
+    // Optional directory creation command
     // mkdir  "<case>/someDir";
+
+    // Default output-directory
+    // outputDir  "<case>/insitu";
 
     scripts
     (
@@ -29,6 +32,12 @@ catalyst
 
             // All regions
             regions (".*");
+
+            // Emit boundary mesh/fields
+            boundary true;
+
+            // Emit internal mesh/fields
+            internal true;
 
             // Selected fields (words or regex)
             fields  (T U p);

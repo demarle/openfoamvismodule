@@ -43,21 +43,20 @@ namespace vtk
 {
     defineTypeNameAndDebug(fvMeshAdaptor, 0);
 }
-}
+} // End namespace Foam
+
 
 const Foam::Enum
 <
-    Foam::vtk::fvMeshAdaptor::channel
+    Foam::vtk::fvMeshAdaptor::channelType
 >
 Foam::vtk::fvMeshAdaptor::channelNames
 {
-    { channel::MESH,    "mesh" },
-    { channel::PATCHES, "patches" },
-    { channel::INPUT,   "input" },
+    { channelType::NONE,     "none" },
+    { channelType::INTERNAL, "internal" },
+    { channelType::BOUNDARY, "boundary" },
+    { channelType::ALL,      "all" },
 };
-
-
-const Foam::word Foam::vtk::fvMeshAdaptor::internalName("internal");
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
@@ -69,7 +68,9 @@ Foam::vtk::fvMeshAdaptor::fvMeshAdaptor
 )
 :
     mesh_(mesh),
-    channels_(INPUT),
+    channels_(ALL),
+    interpFields_(true),
+    extrapPatches_(false),
     decomposePoly_(decompose),
     meshState_(polyMesh::TOPO_CHANGE)
 {}
@@ -92,16 +93,32 @@ void Foam::vtk::fvMeshAdaptor::channels(const wordList& chanNames)
 }
 
 
-void Foam::vtk::fvMeshAdaptor::channels(unsigned chanIds)
+void Foam::vtk::fvMeshAdaptor::channels(enum channelType chanIds)
 {
-    channels_ = (chanIds & 0x3);
+    channels_ = chanIds;
 
-    if (!usingVolume())
+    if (!usingInternal())
     {
         cachedVtu_.clear();
     }
 
-    if (!usingPatches())
+    if (!usingBoundary())
+    {
+        cachedVtp_.clear();
+    }
+}
+
+
+void Foam::vtk::fvMeshAdaptor::channels(unsigned chanIds)
+{
+    channels_ = (chanIds & 0x3);
+
+    if (!usingInternal())
+    {
+        cachedVtu_.clear();
+    }
+
+    if (!usingBoundary())
     {
         cachedVtp_.clear();
     }
@@ -114,19 +131,16 @@ Foam::label Foam::vtk::fvMeshAdaptor::channels() const
 }
 
 
-bool Foam::vtk::fvMeshAdaptor::usingVolume() const
+bool Foam::vtk::fvMeshAdaptor::usingInternal() const
 {
-    // MESH = "internal"
-    return (channels_ & (INPUT | MESH));
+    return (channels_ & INTERNAL);
 }
 
 
-bool Foam::vtk::fvMeshAdaptor::usingPatches() const
+bool Foam::vtk::fvMeshAdaptor::usingBoundary() const
 {
-    // PATCHES
-    return (channels_ & (INPUT | PATCHES));
+    return (channels_ & BOUNDARY);
 }
-
 
 
 Foam::label Foam::vtk::fvMeshAdaptor::nPatches() const
@@ -134,7 +148,7 @@ Foam::label Foam::vtk::fvMeshAdaptor::nPatches() const
     // Restrict to non-processor patches.
     // This value is invariant across all processors.
 
-    if (usingPatches())
+    if (usingBoundary())
     {
         return mesh_.boundaryMesh().nNonProcessor();
     }
@@ -151,13 +165,14 @@ void Foam::vtk::fvMeshAdaptor::updateContent(const wordRes& selectFields)
 
     HashSet<string> nowActive;
 
-    // MESH = "internal"
-    if (usingVolume())
+    // INTERNAL
+    if (usingInternal())
     {
-        nowActive.insert(internalName);
+        nowActive.insert(internalName());
     }
 
-    // PATCHES
+    // BOUNDARY
+
     // Restrict to non-processor patches.
     // This value is invariant across all processors.
 
@@ -203,7 +218,8 @@ void Foam::vtk::fvMeshAdaptor::updateContent(const wordRes& selectFields)
     }
 
     convertGeometryInternal();
-    convertGeometryPatches();
+    convertGeometryBoundary();
+
     applyGhosting();
     convertVolFields(selectFields);
     meshState_ = polyMesh::UNCHANGED;
@@ -230,13 +246,14 @@ Foam::vtk::fvMeshAdaptor::output(const wordRes& select)
 
     auto outputs = vtkSmartPointer<vtkMultiBlockDataSet>::New();
 
-    // MESH
-    {
-        unsigned int blockNo = 0;
+    unsigned int blockNo = 0;
 
+    // INTERNAL
+    if (usingInternal())
+    {
         do
         {
-            const auto& longName = internalName;
+            const auto& longName = internalName();
             auto iter = cachedVtu_.find(longName);
             if (!iter.found() || !iter.object().dataset)
             {
@@ -256,18 +273,18 @@ Foam::vtk::fvMeshAdaptor::output(const wordRes& select)
             outputs->GetMetaData(blockNo)->Set
             (
                 vtkCompositeDataSet::NAME(),
-                internalName
+                internalName()
             );
 
             ++blockNo;
         } while (false);  // do once
     }
 
-    // PATCHES
+    // BOUNDARY
     const label npatches = this->nPatches();
     if (npatches)
     {
-        unsigned int blockNo = 0;
+        unsigned int subBlockNo = 0;
 
         auto output = vtkSmartPointer<vtkMultiBlockDataSet>::New();
 
@@ -292,22 +309,23 @@ Foam::vtk::fvMeshAdaptor::output(const wordRes& select)
             pieces->SetNumberOfPieces(nproc);
             pieces->SetPiece(rank, vtpData.dataset);
 
-            output->SetBlock(blockNo, pieces);
+            output->SetBlock(subBlockNo, pieces);
 
-            output->GetMetaData(blockNo)->Set
+            output->GetMetaData(subBlockNo)->Set
             (
                 vtkCompositeDataSet::NAME(),
                 longName
             );
 
-            ++blockNo;
+            ++subBlockNo;
         }
 
-        outputs->SetBlock(1, output);
-        outputs->GetMetaData(1)->Set
+        outputs->SetBlock(blockNo, output);
+
+        outputs->GetMetaData(blockNo)->Set
         (
             vtkCompositeDataSet::NAME(),
-            channelNames[channel::PATCHES]
+            boundaryName()
         );
     }
 

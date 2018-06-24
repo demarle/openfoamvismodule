@@ -34,7 +34,7 @@ License
 // Templates (only needed here)
 #include "foamVtkFaMeshAdaptorFieldTemplates.C"
 
-// * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * * Local Functions * * * * * * * * * * * * * * //
 
 namespace Foam
 {
@@ -53,8 +53,10 @@ static wordHashSet supportedTypes()
     return types;
 }
 
-} // end of Foam
+} // End namespace Foam
 
+
+// * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 Foam::wordHashSet Foam::vtk::faMeshAdaptor::knownFields
 (

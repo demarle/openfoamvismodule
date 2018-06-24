@@ -51,10 +51,7 @@ inline Foam::label Foam::catalyst::dataQuery::size() const
 }
 
 
-inline bool Foam::catalyst::dataQuery::found
-(
-    const fileName& channel
-) const
+inline bool Foam::catalyst::dataQuery::found(const word& channel) const
 {
     return fields_.found(channel);
 }
@@ -62,18 +59,20 @@ inline bool Foam::catalyst::dataQuery::found
 
 inline Foam::List<Foam::label> Foam::catalyst::dataQuery::active() const
 {
+    // The active indices
     return active_.sortedToc();
 }
 
 
-inline Foam::List<Foam::fileName> Foam::catalyst::dataQuery::names() const
+inline Foam::wordList Foam::catalyst::dataQuery::names() const
 {
-    return List<fileName>(names_, active_.sortedToc());
+    // Subset of known names with the active indices
+    return wordList(names_, active_.sortedToc());
 }
 
 
 inline const Foam::wordHashSet&
-Foam::catalyst::dataQuery::fields(const fileName& channel) const
+Foam::catalyst::dataQuery::fields(const word& channel) const
 {
     const auto iter = fields_.cfind(channel);
     if (iter.found())
@@ -85,7 +84,7 @@ Foam::catalyst::dataQuery::fields(const fileName& channel) const
 }
 
 
-inline void Foam::catalyst::dataQuery::clear(const fileName& channel)
+inline void Foam::catalyst::dataQuery::clear(const word& channel)
 {
     fields_.erase(channel);
     active_.erase(names_.find(channel));

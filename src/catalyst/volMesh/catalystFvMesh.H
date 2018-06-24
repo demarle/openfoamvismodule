@@ -25,39 +25,66 @@ Class
     Foam::catalyst::fvMeshInput
 
 Description
-    A Paraview Catalyst source for OpenFOAM fvMesh regions.
+    An input (source) for Paraview Catalyst from fvMesh regions.
 
-    The source comprises up to three internal channels
-    ("input", "mesh", "patches"), each of which is a multi-block dataset.
-    On output, the "input" sub-channel receives the name of the source,
-    while the "mesh" and "patches" sub-channels are prefixed with the
-    name of the source.
+    Produces a multi-block dataset with one block per region.
+    Each region block contains up to two blocks corresponding
+    to the internal (volume) mesh (block 0) and the boundary (block 1),
+    which are further divided into sub-blocks for each patch.
+    The lowest blocks contain pieces from each processor.
 
     Example specification:
     \verbatim
-    myName
+    someName
     {
-        type            default;
-        regions         ( ".*Solid" )
-        fields          (U p);
+        type        default;
+        regions     ( ".*solid" )
+        boundary    false;
+        fields      (U p);
     }
     \endverbatim
 
-    Resulting in three output channels:
-    "myName", "myName/mesh", "myName/patches"
-
 Usage
     \table
-        Property     | Description                      | Required    | Default
-        type         | default                          | no          | default
-        region       |                                  | no          | region0
-        regions      | wordRe list of regions           | no          |
-        fields       | wordRe list of fields            | yes         |
-        decompose    | decompose polyhedra              | no          | false
+        Property    | Description                           | Required | Default
+        type        | input type: \c default                | no    | default
+        region      | name for a single region              | no    | region0
+        regions     | wordRe list of regions                | no    |
+        fields      | wordRe list of fields                 | yes   |
+        boundary    | convert boundary fields               | no    | true
+        internal    | convert internal fields               | no    | true
+        decompose   | decompose polyhedra (experimental)    | no    | false
     \endtable
 
+    The output block structure:
+    \verbatim
+    |-- region0
+    |   |-- internal
+    |   |   |-- piece0
+    |   |   |-- ...
+    |   |   \-- pieceN
+    |   \-- boundary
+    |       |-- patch0
+    |       |   |-- piece0
+    |       |   |-- ...
+    |       |   \-- pieceN
+    |       |-- ...
+    |       \-- patchN
+    |           |-- piece0
+    |           |-- ...
+    |           \-- pieceN
+    |-- ...
+    \-- regionN
+        |-- internal
+        |   \-- ...
+        \-- boundary
+            \-- ...
+    \endverbatim
+
+Note
+    The channel name is that of the defining dictionary.
+
 See also
-    Foam::catalyst::catalystInput
     Foam::vtk::fvMeshAdaptor
 
 SourceFiles
@@ -93,8 +120,17 @@ protected:
 
     // Protected data
 
+        //- Channel enumeration from vtk::fvMeshAdaptor
+        using channelType = vtk::fvMeshAdaptor::channelType;
+
         //- Reference to the time database
         const Time& time_;
+
+        //- Sub-block selection (internal/boundary) mesh and fields
+        channelType channelOpt_;
+
+        //- Decompose polyhedra (experimental, perhaps of questionable use)
+        bool decomposeOpt_;
 
         //- Requested names of regions to process
         wordRes selectRegions_;
@@ -102,23 +138,14 @@ protected:
         //- Names of fields to process
         wordRes selectFields_;
 
-        //- Decompose polyhedra
-        bool decompose_;
-
         //- Pointers to the requested mesh regions
         HashTable<const fvMesh*> meshes_;
 
         //- Backends for OpenFOAM to VTK translation (with internal caching)
         HashPtrTable<vtk::fvMeshAdaptor> backends_;
 
-        //- Use channel enumeration from vtk::fvMeshAdaptor
-        using channelEnum = vtk::fvMeshAdaptor::channel;
-
 
     // Protected Member Functions
-
-        //- Return full channel name
-        fileName channelName(channelEnum chan) const;
 
         //- Update/synchronize internals with catalyst backends
         void update();
@@ -159,6 +186,8 @@ public:
         virtual void update(polyMesh::readUpdateState state);
 
         //- Add available channels (with fields) to data query
+        //
+        //  \return the number of channels added
         virtual label addChannels(dataQuery& dataq);
 
         //- Convert channels to vtkMultiBlockDataSet outputs

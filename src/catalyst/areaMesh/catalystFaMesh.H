@@ -25,15 +25,14 @@ Class
     Foam::catalyst::faMeshInput
 
 Description
-    A Paraview Catalyst source for OpenFOAM faMesh regions.
+    An input (source) for Paraview Catalyst from faMesh regions.
 
-    The source comprises a single internal "input" channel,
-    which is a multi-block dataset (one block per area mesh).
-    On output, the "input" sub-channel receives the name of the source.
+    Produces a multi-block dataset with one block per area mesh with pieces
+    from each processor.
 
     Example specification:
     \verbatim
-    myArea
+    someName
     {
         type            area;
         fields          (U p);
@@ -42,15 +41,29 @@ Description
 
 Usage
     \table
-        Property     | Description                 | Required    | Default
-        type         | area                        | yes         |
-        region       |                             | no          | region0
-        regions      | wordRe list of regions      | no          |
-        fields       | wordRe list of fields       | yes         |
+        Property    | Description                           | Required | Default
+        type        | input type: \c area                   | yes   |
+        region      | name for a single region              | no    | region0
+        area        | select a single area                  | no    |
+        areas       | wordRe list of multiple areas         | no    |
+        fields      | wordRe list of fields                 | yes   |
     \endtable
 
+    The output block structure:
+    \verbatim
+    |-- area0
+    |   |-- piece0
+    |   |-- ...
+    |   \-- pieceN
+    |-- ...
+    \-- areaN
+        \-- ...
+    \endverbatim
+
+Note
+    The channel name is that of the defining dictionary.
+
 See also
-    Foam::catalyst::catalystInput
     Foam::vtk::faMeshAdaptor
 
 SourceFiles
@@ -75,7 +88,7 @@ namespace catalyst
 {
 
 /*---------------------------------------------------------------------------*\
-                          Class catalyst::faMeshInput Declaration
+                    Class catalyst::faMeshInput Declaration
 \*---------------------------------------------------------------------------*/
 
 class faMeshInput

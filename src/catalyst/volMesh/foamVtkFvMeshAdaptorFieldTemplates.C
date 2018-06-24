@@ -55,12 +55,9 @@ void Foam::vtk::fvMeshAdaptor::convertVolField
     const fvMesh& mesh = fld.mesh();
     const polyBoundaryMesh& patches = mesh.boundaryMesh();
 
-    const bool interpField = !patchInterpList.empty();
-    const bool extrapPatch = false; //reader_->GetExtrapolatePatches(); TODO
-
     // Interpolated field (demand driven)
     autoPtr<GeometricField<Type, pointPatchField, pointMesh>> ptfPtr;
-    if (interpField)
+    if (interpFields_)
     {
         ptfPtr.reset
         (
@@ -68,10 +65,10 @@ void Foam::vtk::fvMeshAdaptor::convertVolField
         );
     }
 
-    // MESH
+    // INTERNAL
     convertVolFieldInternal(fld, ptfPtr);
 
-    // PATCHES
+    // BOUNDARY
     const label npatches = this->nPatches();
 
     for (label patchId=0; patchId < npatches; ++patchId)
@@ -114,7 +111,7 @@ void Foam::vtk::fvMeshAdaptor::convertVolField
             isType<emptyFvPatchField<Type>>(ptf)
          ||
             (
-                extrapPatch
+                extrapPatches_
              && !polyPatch::constraintType(patches[patchId].type())
             )
         )
@@ -128,7 +125,7 @@ void Foam::vtk::fvMeshAdaptor::convertVolField
 
             transcribeFloatData(cdata, tpptf());
 
-            if (interpField && patchId < patchInterpList.size())
+            if (interpFields_ && patchId < patchInterpList.size())
             {
                 pdata = vtk::Tools::convertFieldToVTK
                 (
@@ -141,7 +138,7 @@ void Foam::vtk::fvMeshAdaptor::convertVolField
         {
             transcribeFloatData(cdata, ptf);
 
-            if (interpField && patchId < patchInterpList.size())
+            if (interpFields_ && patchId < patchInterpList.size())
             {
                 pdata = vtk::Tools::convertFieldToVTK
                 (
@@ -193,12 +190,12 @@ void Foam::vtk::fvMeshAdaptor::convertVolFieldInternal
     autoPtr<GeometricField<Type, pointPatchField, pointMesh>>& ptfPtr
 )
 {
-    if (!usingVolume())
+    if (!usingInternal())
     {
         return;
     }
 
-    const auto& longName = internalName;
+    const auto& longName = internalName();
 
     auto iter = cachedVtu_.find(longName);
     if (!iter.found() || !iter.object().dataset)

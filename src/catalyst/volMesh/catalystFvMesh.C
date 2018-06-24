@@ -25,7 +25,6 @@ License
 
 #include "catalystFvMesh.H"
 #include "addToRunTimeSelectionTable.H"
-#include "fileNameList.H"
 
 #include <vtkCPDataDescription.h>
 #include <vtkMultiBlockDataSet.h>
@@ -46,21 +45,10 @@ namespace catalyst
         default
     );
 }
-}
+} // End namespace Foam
 
 
 // * * * * * * * * * * * * Protected Member Functions  * * * * * * * * * * * //
-
-Foam::fileName Foam::catalyst::fvMeshInput::channelName(channelEnum chan) const
-{
-    if (chan == channelEnum::INPUT)
-    {
-        return name();
-    }
-
-    return name()/vtk::fvMeshAdaptor::channelNames[chan];
-}
-
 
 void Foam::catalyst::fvMeshInput::update()
 {
@@ -77,7 +65,7 @@ void Foam::catalyst::fvMeshInput::update()
             backends_.set
             (
                 iter.key(),
-                new Foam::vtk::fvMeshAdaptor(*(iter.object()), decompose_)
+                new Foam::vtk::fvMeshAdaptor(*(iter.object()), decomposeOpt_)
             );
         }
     }
@@ -95,9 +83,10 @@ Foam::catalyst::fvMeshInput::fvMeshInput
 :
     catalystInput(name),
     time_(runTime),
+    channelOpt_(channelType::DEFAULT),
+    decomposeOpt_(false),
     selectRegions_(),
     selectFields_(),
-    decompose_(false),
     meshes_(),
     backends_()
 {
@@ -111,10 +100,34 @@ bool Foam::catalyst::fvMeshInput::read(const dictionary& dict)
 {
     catalystInput::read(dict);
 
+    meshes_.clear();
     backends_.clear();
     selectFields_.clear();
     selectRegions_.clear();
-    decompose_ = dict.lookupOrDefault("decompose", false);
+    decomposeOpt_ = dict.lookupOrDefault("decompose", false);
+
+    unsigned selected(channelType::NONE);
+
+    if (dict.lookupOrDefault("internal", true))
+    {
+        selected |= channelType::INTERNAL;
+    }
+    if (dict.lookupOrDefault("boundary", true))
+    {
+        selected |= channelType::BOUNDARY;
+    }
+
+    channelOpt_ = channelType(selected);
+
+    if (channelType::NONE == channelOpt_)
+    {
+        // Both are disabled - warn, and skip the rest of the input.
+        WarningInFunction
+            << name() << ":" << nl
+            << "    both internal and boundary are disabled" << nl
+            << "    check your input" << nl;
+        return true;
+    }
 
     // All possible meshes
     meshes_ = time_.lookupClass<fvMesh>();
@@ -131,7 +144,7 @@ bool Foam::catalyst::fvMeshInput::read(const dictionary& dict)
     // Restrict to specified meshes
     meshes_.filterKeys(selectRegions_);
 
-    dict.lookup("fields") >> selectFields_;
+    dict.read("fields", selectFields_);
 
     return true;
 }
@@ -161,6 +174,12 @@ void Foam::catalyst::fvMeshInput::update(polyMesh::readUpdateState state)
 
 Foam::label Foam::catalyst::fvMeshInput::addChannels(dataQuery& dataq)
 {
+    if (channelType::NONE == channelOpt_)
+    {
+        // Everything disabled - do nothing
+        return 0;
+    }
+
     update();   // Enforce sanity for backends and adaptor
 
     if (backends_.empty())
@@ -175,14 +194,9 @@ Foam::label Foam::catalyst::fvMeshInput::addChannels(dataQuery& dataq)
         allFields += iter.object()->knownFields(selectFields_);
     }
 
+    dataq.set(name(), allFields);
 
-    // This solution may be a temporary measure...
-
-    dataq.set(name(), allFields);  // channel::INPUT
-    dataq.set(channelName(channelEnum::MESH),    allFields);
-    dataq.set(channelName(channelEnum::PATCHES), allFields);
-
-    return 3;
+    return 1;
 }
 
 
@@ -192,136 +206,49 @@ bool Foam::catalyst::fvMeshInput::convert
     outputChannels& outputs
 )
 {
+    const word channelName(name());
     const wordList regionNames(backends_.sortedToc());
 
-    if (regionNames.empty())
+    if (regionNames.empty() || !dataq.found(channelName))
     {
-        return false;  // skip - not available
+        // Not available, or not requested
+        return false;
     }
-
-    // Multi-channel
-
-    // This solution may be a temporary measure...
-
-    unsigned whichChannels = channelEnum::NONE;
-
-    // channel::INPUT
-    if (dataq.found(name()))
+    if (channelType::NONE == channelOpt_)
     {
-        whichChannels |= channelEnum::INPUT;
-    }
-
-    // channel::MESH
-    if (dataq.found(channelName(channelEnum::MESH)))
-    {
-        whichChannels |= channelEnum::MESH;
-    }
-
-    // channel::PATCHES
-    if (dataq.found(channelName(channelEnum::PATCHES)))
-    {
-        whichChannels |= channelEnum::PATCHES;
-    }
-
-    if (channelEnum::NONE == whichChannels)
-    {
-        return false;  // skip - not requested
+        // Safety: everything disabled (should have been caught before)
+        return false;
     }
 
 
-    // TODO: currently don't rely on the results from expecting much at all
-
-    // Each region goes into a separate block.
+    // A separate block for each region
     unsigned int blockNo = 0;
+
     for (const word& regionName : regionNames)
     {
-        // define/redefine output channels
-        backends_[regionName]->channels(whichChannels);
+        // Define/redefine output channels (caching)
+        backends_[regionName]->channels(channelOpt_);
 
-        vtkSmartPointer<vtkMultiBlockDataSet> dataset =
-            backends_[regionName]->output(selectFields_);
+        auto dataset = backends_[regionName]->output(selectFields_);
 
-        // MESH = block 0
-        {
-            const unsigned int channelNo = 0;
 
-            const fileName channel(channelName(channelEnum::MESH));
+        // Existing or new
+        vtkSmartPointer<vtkMultiBlockDataSet> block =
+            outputs.lookup
+            (
+                channelName,
+                vtkSmartPointer<vtkMultiBlockDataSet>::New()
+            );
 
-            if (dataq.found(channel))
-            {
-                // Get existing or new
-                vtkSmartPointer<vtkMultiBlockDataSet> block =
-                    outputs.lookup
-                    (
-                        channel,
-                        vtkSmartPointer<vtkMultiBlockDataSet>::New()
-                    );
+        block->SetBlock(blockNo, dataset);
 
-                block->SetBlock(blockNo, dataset->GetBlock(channelNo));
+        block->GetMetaData(blockNo)->Set
+        (
+            vtkCompositeDataSet::NAME(),
+            regionName                      // block name = region name
+        );
 
-                block->GetMetaData(blockNo)->Set
-                (
-                    vtkCompositeDataSet::NAME(),
-                    regionName
-                );
-
-                outputs.set(channel, block); // overwrites existing
-            }
-        }
-
-        // PATCHES = block 1
-        {
-            const unsigned int channelNo = 1;
-
-            const fileName channel(channelName(channelEnum::PATCHES));
-
-            if (dataq.found(channel))
-            {
-                // Get existing or new
-                vtkSmartPointer<vtkMultiBlockDataSet> block =
-                    outputs.lookup
-                    (
-                        channel,
-                        vtkSmartPointer<vtkMultiBlockDataSet>::New()
-                    );
-
-                block->SetBlock(blockNo, dataset->GetBlock(channelNo));
-
-                block->GetMetaData(blockNo)->Set
-                (
-                    vtkCompositeDataSet::NAME(),
-                    regionName
-                );
-
-                outputs.set(channel, block);  // overwrites existing
-            }
-        }
-
-        // INPUT
-        {
-            const fileName channel = name();
-
-            if (dataq.found(channel))
-            {
-                // Get existing or new
-                vtkSmartPointer<vtkMultiBlockDataSet> block =
-                    outputs.lookup
-                    (
-                        channel,
-                        vtkSmartPointer<vtkMultiBlockDataSet>::New()
-                    );
-
-                block->SetBlock(blockNo, dataset);
-
-                block->GetMetaData(blockNo)->Set
-                (
-                    vtkCompositeDataSet::NAME(),
-                    regionName
-                );
-
-                outputs.set(channel, block);  // overwrites existing
-            }
-        }
+        outputs.set(channelName, block);    // overwrites existing
 
         ++blockNo;
     }
@@ -335,7 +262,27 @@ Foam::Ostream& Foam::catalyst::fvMeshInput::print(Ostream& os) const
     os  << name() << nl
         <<"    regions " << flatOutput(selectRegions_) << nl
         <<"    meshes  " << flatOutput(meshes_.sortedToc()) << nl
-        <<"    fields  " << flatOutput(selectFields_) << nl;
+        <<"    fields  " << flatOutput(selectFields_) << nl
+        <<"    output ";
+
+    const unsigned selected(channelOpt_);
+
+    if (!selected)
+    {
+        os << " none";
+    }
+    else
+    {
+        if (0 != (selected & (channelType::INTERNAL)))
+        {
+            os  <<" internal";
+        }
+        if (0 != (selected & (channelType::BOUNDARY)))
+        {
+            os  <<" boundary";
+        }
+    }
+    os << nl;
 
     return os;
 }

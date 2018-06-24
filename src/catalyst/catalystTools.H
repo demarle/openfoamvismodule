@@ -25,7 +25,7 @@ Class
     Foam::catalyst::timeQuery
 
 Description
-    Low-level handling for time queries
+    Low-level handling for Catalyst time queries
 
 SourceFiles
     catalystTools.C
@@ -36,7 +36,6 @@ SourceFiles
 #define functionObjects_catalystTools_H
 
 #include "wordList.H"
-#include "stringList.H"
 #include "DynamicList.H"
 #include "HashSet.H"
 
@@ -61,9 +60,7 @@ namespace catalyst
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 //- Container holding VTK outputs per Catalyst channel name
-typedef
-    HashTable<vtkSmartPointer<vtkMultiBlockDataSet>, fileName>
-    outputChannels;
+typedef HashTable<vtkSmartPointer<vtkMultiBlockDataSet>> outputChannels;
 
 
 //- Print information about data description
@@ -74,7 +71,7 @@ void printInfo(Ostream& os, vtkCPDataDescription* descrip);
                      Class catalyst::timeQuery Declaration
 \*---------------------------------------------------------------------------*/
 
-//- Simple structure for time queries
+//- Simple structure for Catalyst time queries
 struct timeQuery
 {
     double timeValue;
@@ -101,16 +98,16 @@ struct timeQuery
                      Class catalyst::dataQuery Declaration
 \*---------------------------------------------------------------------------*/
 
-//- Simple structure for data description queries
+//- Simple structure for Catalyst data description queries
 class dataQuery
 :
     public timeQuery
 {
     //- Catalyst channel names for query, in the order of addition
-    DynamicList<fileName> names_;
+    DynamicList<word> names_;
 
     //- Fields per channel
-    HashTable<wordHashSet, fileName> fields_;
+    HashTable<wordHashSet> fields_;
 
     //- Indices (into names_) of active channels
     labelHashSet active_;
@@ -156,22 +153,22 @@ public:
         inline label size() const;
 
         //- True if given channel exists (in fields or active)
-        inline bool found(const fileName& channel) const;
+        inline bool found(const word& channel) const;
 
         //- The active channel numbers
         inline List<label> active() const;
 
         //- The channel names
-        inline List<fileName> names() const;
+        inline wordList names() const;
 
         //- Fields for the given channel
-        inline const wordHashSet& fields(const fileName& channel) const;
+        inline const wordHashSet& fields(const word& channel) const;
 
         //- Clear the specified channel
-        inline void clear(const fileName& channel);
+        inline void clear(const word& channel);
 
         //- Set fields for the specified channel and make it active
-        void set(const fileName& channel, const wordHashSet& fields);
+        void set(const word& channel, const wordHashSet& fields);
 
         //- Query coprocess, transform defined input channels to
         //- known requests.
@@ -186,10 +183,8 @@ public:
 
 } // End namespace catalyst
 
-
 // Ostream Operator
 Ostream& operator<<(Ostream& os, const catalyst::timeQuery& when);
-
 
 } // End namespace Foam
 

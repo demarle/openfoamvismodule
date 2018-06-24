@@ -44,7 +44,7 @@ namespace vtk
 {
     defineTypeNameAndDebug(faMeshAdaptor, 0);
 }
-}
+} // End namespace Foam
 
 const Foam::word Foam::vtk::faMeshAdaptor::internalName("internal");
 

@@ -47,7 +47,7 @@ namespace catalyst
         area
     );
 }
-}
+} // End namespace Foam
 
 
 // * * * * * * * * * * * * Protected Member Functions  * * * * * * * * * * * //
@@ -139,7 +139,7 @@ bool Foam::catalyst::faMeshInput::read(const dictionary& dict)
     // Restrict to specified meshes
     meshes_.filterKeys(selectAreas_);
 
-    dict.lookup("fields") >> selectFields_;
+    dict.read("fields", selectFields_);
 
     return true;
 }
@@ -153,18 +153,18 @@ void Foam::catalyst::faMeshInput::update(polyMesh::readUpdateState state)
         time_.lookupObject<objectRegistry>(regionName_);
 
     // Be really paranoid and verify if the mesh actually exists
-    const wordList regionNames(backends_.toc());
+    const wordList areaNames(backends_.toc());
 
-    for (const word& regionName : regionNames)
+    for (const word& areaName : areaNames)
     {
-        if (meshes_.found(regionName) && obr.found(regionName))
+        if (meshes_.found(areaName) && obr.found(areaName))
         {
-            backends_[regionName]->updateState(state);
+            backends_[areaName]->updateState(state);
         }
         else
         {
-            backends_.erase(regionName);
-            meshes_.erase(regionName);
+            backends_.erase(areaName);
+            meshes_.erase(areaName);
         }
     }
 }
@@ -186,7 +186,6 @@ Foam::label Foam::catalyst::faMeshInput::addChannels(dataQuery& dataq)
         allFields += iter.object()->knownFields(selectFields_);
     }
 
-
     dataq.set(name(), allFields);
 
     return 1;
@@ -199,61 +198,41 @@ bool Foam::catalyst::faMeshInput::convert
     outputChannels& outputs
 )
 {
-    const wordList regionNames(backends_.sortedToc());
+    const word channelName(name());
+    const wordList areaNames(backends_.sortedToc());
 
-    if (regionNames.empty())
+    if (areaNames.empty() || !dataq.found(channelName))
     {
-        return false;  // skip - not available
-    }
-
-    // Single channel only
-
-    label nChannels = 0;
-
-    if (dataq.found(name()))
-    {
-        ++nChannels;
-    }
-
-    if (!nChannels)
-    {
-        return false;  // skip - not requested
+        // Not available, or not requested
+        return false;
     }
 
 
-    // TODO: currently don't rely on the results from expecting much at all
-
-    // Each region in a separate block
+    // A separate block for each area mesh
     unsigned int blockNo = 0;
-    for (const word& regionName : regionNames)
+
+    for (const word& areaName : areaNames)
     {
-        auto dataset =
-            backends_[regionName]->output(selectFields_);
+        auto dataset = backends_[areaName]->output(selectFields_);
 
-        {
-            const fileName channel = name();
 
-            if (dataq.found(channel))
-            {
-                // Get existing or new
-                vtkSmartPointer<vtkMultiBlockDataSet> block =
-                    outputs.lookup
-                    (
-                        channel,
-                        vtkSmartPointer<vtkMultiBlockDataSet>::New()
-                    );
+        // Existing or new
+        vtkSmartPointer<vtkMultiBlockDataSet> block =
+            outputs.lookup
+            (
+                channelName,
+                vtkSmartPointer<vtkMultiBlockDataSet>::New()
+            );
 
-                block->SetBlock(blockNo, dataset);
+        block->SetBlock(blockNo, dataset);
 
-                block->GetMetaData(blockNo)->Set
-                (
-                    vtkCompositeDataSet::NAME(),
-                    regionName
-                );
+        block->GetMetaData(blockNo)->Set
+        (
+            vtkCompositeDataSet::NAME(),
+            areaName                        // block name = area mesh name
+        );
 
-                outputs.set(channel, block);  // overwrites existing
-            }
-        }
+        outputs.set(channelName, block);    // overwrites existing
 
         ++blockNo;
     }

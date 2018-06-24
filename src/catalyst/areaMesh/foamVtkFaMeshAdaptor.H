@@ -42,9 +42,6 @@ SourceFiles
 #define foamVtkFaMeshAdaptor_H
 
 #include "className.H"
-#include "fileName.H"
-#include "stringList.H"
-#include "wordList.H"
 #include "polyMesh.H"
 #include "areaFieldsFwd.H"
 #include "foamVtkTools.H"

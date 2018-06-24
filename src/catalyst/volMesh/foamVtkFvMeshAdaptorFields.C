@@ -51,7 +51,7 @@ static wordHashSet supportedTypes()
     return types;
 }
 
-} // end of Foam
+} // End namespace Foam
 
 
 Foam::wordHashSet Foam::vtk::fvMeshAdaptor::knownFields
@@ -94,8 +94,6 @@ void Foam::vtk::fvMeshAdaptor::convertVolFields
     const wordRes& selectFields
 )
 {
-    const bool interpFields = true;
-
     // Quick exit if no volume fields can be converted.
     // This could be refined
     HashTable<wordHashSet> objects = mesh_.classes(selectFields);
@@ -107,7 +105,7 @@ void Foam::vtk::fvMeshAdaptor::convertVolFields
 
     PtrList<patchInterpolator> interpLst;
 
-    if (interpFields)
+    if (interpFields_)
     {
         // NOTE: this will be broken with processor patches, but
         // for the catalyst adaptor we explicitly restrict ourselves

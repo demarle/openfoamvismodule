@@ -192,7 +192,7 @@ bool Foam::functionObjects::catalystFunctionObject::read(const dictionary& dict)
         Foam::mkDir(outputDir_);
     }
 
-    dict.lookup("scripts") >> scripts_; // Python scripts
+    dict.read("scripts", scripts_);     // Python scripts
     expand(scripts_, dict);             // Expand and check availability
 
 
@@ -217,17 +217,18 @@ bool Foam::functionObjects::catalystFunctionObject::read(const dictionary& dict)
             continue;
         }
 
-        newList.set
-        (
-            nInputs,
+        auto input =
             catalyst::catalystInput::New
             (
                 word(iter().keyword()),
                 time_,
                 *subDictPtr
-            ).ptr()
-        );
+            );
 
+        // We may wish to perform additional validity or sanity checks on
+        // the input before deciding to add it to the list.
+
+        newList.set(nInputs, input);
         ++nInputs;
     }
 
@@ -250,7 +251,7 @@ bool Foam::functionObjects::catalystFunctionObject::read(const dictionary& dict)
         nInputs = 0;
         for (const auto& inp : inputs_)
         {
-            if (nInputs++) Info << nl;
+            if (nInputs++) Info<< nl;
             inp.print(Info);
         }
 
@@ -263,8 +264,6 @@ bool Foam::functionObjects::catalystFunctionObject::read(const dictionary& dict)
 
 bool Foam::functionObjects::catalystFunctionObject::execute()
 {
-    // Enforce sanity for backends and adaptor
-
     if (inputs_.empty())
     {
         return false;
@@ -331,7 +330,7 @@ bool Foam::functionObjects::catalystFunctionObject::execute()
 
     if (catalyst::coprocess::debug > 1)
     {
-        Pout<< type() << ": sending data for" << outputs.size()
+        Pout<< type() << ": sending data for " << outputs.size()
             << " outputs" << nl;
     }
 
@@ -349,8 +348,10 @@ bool Foam::functionObjects::catalystFunctionObject::execute()
     }
 
 
-    // Avoid compiler complaint about unused variable.
-    // - manually restore old SIGFPE state
+    // Instead of relying on the destructor, manually restore the previous
+    // SIGFPE state.
+    // This is only to avoid compiler complaints about unused variables.
+
     sigFpeHandling.restore();
 
     return true;

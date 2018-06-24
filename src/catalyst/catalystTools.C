@@ -93,7 +93,7 @@ Foam::catalyst::dataQuery::~dataQuery()
 
 void Foam::catalyst::dataQuery::set
 (
-    const fileName& channel,
+    const word& channel,
     const wordHashSet& fields
 )
 {
@@ -134,23 +134,23 @@ Foam::label Foam::catalyst::dataQuery::query(vtkCPProcessor* coproc)
     descrip->SetTimeData(dataq.timeValue, dataq.timeIndex);
     descrip->SetForceOutput(dataq.forced);
 
-    const List<fileName> inputNames(dataq.names());
+    const wordList inputNames(dataq.names());
 
     // Sort out which channels already exist, are new, or disappeared
 
     // The currently defined channels
-    HashSet<fileName> currChannels;
+    wordHashSet currChannels;
 
     const unsigned n = descrip->GetNumberOfInputDescriptions();
     for (unsigned i=0; i < n; ++i)
     {
         currChannels.insert
         (
-            fileName::validate(descrip->GetInputDescriptionName(i))
+            word::validate(descrip->GetInputDescriptionName(i))
         );
     }
 
-    HashSet<fileName> oldChannels(currChannels);
+    wordHashSet oldChannels(currChannels);
     oldChannels.erase(inputNames);
 
     if (oldChannels.size())
@@ -165,7 +165,7 @@ Foam::label Foam::catalyst::dataQuery::query(vtkCPProcessor* coproc)
     // Note: this misses updating field information for previously
     // existing inputs.
 
-    for (const fileName& channel : inputNames)
+    for (const word& channel : inputNames)
     {
         if (currChannels.found(channel))
         {
@@ -173,8 +173,7 @@ Foam::label Foam::catalyst::dataQuery::query(vtkCPProcessor* coproc)
         }
 
         descrip->AddInput(channel.c_str());
-        auto* input =
-            descrip->GetInputDescriptionByName(channel.c_str());
+        auto* input = descrip->GetInputDescriptionByName(channel.c_str());
 
         for (const word& fieldName : dataq.fields(channel))
         {
@@ -193,7 +192,7 @@ Foam::label Foam::catalyst::dataQuery::query(vtkCPProcessor* coproc)
         return dataq.size();
     }
 
-    for (const fileName& channel : inputNames)
+    for (const word& channel : inputNames)
     {
         auto* input = descrip->GetInputDescriptionByName(channel.c_str());
 

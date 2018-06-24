@@ -43,7 +43,7 @@ namespace vtk
 {
     defineTypeNameAndDebug(cloudAdaptor, 0);
 }
-}
+} // End namespace Foam
 
 
 // * * * * * * * * * * * * * Static Member Functions * * * * * * * * * * * * //

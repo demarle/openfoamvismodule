@@ -47,7 +47,7 @@ namespace catalyst
         cloud
     );
 }
-}
+} // End namespace Foam
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
@@ -120,57 +120,43 @@ bool Foam::catalyst::cloudInput::convert
     outputChannels& outputs
 )
 {
+    const fileName channelName(name());
     const fvMesh& fvm = time_.lookupObject<fvMesh>(regionName_);
     const wordList cloudNames(fvm.sortedNames<cloud>(selectClouds_));
 
-    if (cloudNames.empty())
+    if (cloudNames.empty() || !dataq.found(channelName))
     {
-        return false;  // skip - not available
+        // Not available, or not requested
+        return false;
     }
 
-    // Single channel only
 
-    label nChannels = 0;
-
-    if (dataq.found(name()))
-    {
-        ++nChannels;
-    }
-
-    if (!nChannels)
-    {
-        return false;  // skip - not requested
-    }
-
-    // Each cloud in a separate block.
+    // A separate block for each cloud
     unsigned int blockNo = 0;
+
     for (const word& cloudName : cloudNames)
     {
         auto dataset =
             vtk::cloudAdaptor(fvm).getCloud(cloudName, selectFields_);
 
-        const fileName channel = name();
 
-        if (dataq.found(channel))
-        {
-            // Get existing or new
-            vtkSmartPointer<vtkMultiBlockDataSet> block =
-                outputs.lookup
-                (
-                    channel,
-                    vtkSmartPointer<vtkMultiBlockDataSet>::New()
-                );
-
-            block->SetBlock(blockNo, dataset);
-
-            block->GetMetaData(blockNo)->Set
+        // Existing or new
+        vtkSmartPointer<vtkMultiBlockDataSet> block =
+            outputs.lookup
             (
-                vtkCompositeDataSet::NAME(),
-                cloudName
+                channelName,
+                vtkSmartPointer<vtkMultiBlockDataSet>::New()
             );
 
-            outputs.set(channel, block);  // overwrites existing
-        }
+        block->SetBlock(blockNo, dataset);
+
+        block->GetMetaData(blockNo)->Set
+        (
+            vtkCompositeDataSet::NAME(),
+            cloudName                       // block name = cloud name
+        );
+
+        outputs.set(channelName, block);    // overwrites existing
 
         ++blockNo;
     }

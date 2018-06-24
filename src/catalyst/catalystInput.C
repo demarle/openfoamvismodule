@@ -37,7 +37,7 @@ namespace catalyst
     defineTypeNameAndDebug(catalystInput, 0);
     defineRunTimeSelectionTable(catalystInput, dictionary);
 }
-}
+} // End namespace Foam
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
@@ -58,16 +58,15 @@ Foam::catalyst::catalystInput::New
     const dictionary& dict
 )
 {
-    const word sourceType = dict.lookupOrDefault<word>("type", "default");
+    const word modelType(dict.lookupOrDefault<word>("type", "default"));
 
-    auto cstrIter = dictionaryConstructorTablePtr_->cfind(sourceType);
+    auto cstrIter = dictionaryConstructorTablePtr_->cfind(modelType);
 
     if (!cstrIter.found())
     {
         FatalErrorInFunction
-            << "Unknown catalystInput "
-            << sourceType << nl << nl
-            << "Valid sources : " << endl
+            << "Unknown catalystInput " << modelType << nl << nl
+            << "Valid inputs:" << endl
             << dictionaryConstructorTablePtr_->sortedToc()
             << exit(FatalError);
     }

@@ -22,10 +22,10 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::catalystInput
+    Foam::catalyst::catalystInput
 
 Description
-    An OpenFOAM source for Paraview Catalyst.
+    An abstract input (source) for Paraview Catalyst.
 
 See also
     Foam::catalyst::coprocess
@@ -42,8 +42,8 @@ SourceFiles
 
 #include "className.H"
 #include "polyMesh.H"
-#include "runTimeSelectionTables.H"
 #include "catalystTools.H"
+#include "runTimeSelectionTables.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -66,7 +66,7 @@ class catalystInput
 {
     // Private data
 
-        //- The name of the source
+        //- The Catalyst input channel name
         word name_;
 
 public:
@@ -89,7 +89,7 @@ public:
 
     // Selectors
 
-        //- Return a reference to the selected source
+        //- Return a reference to the selected input
         static autoPtr<catalystInput> New
         (
             const word& name,
@@ -104,7 +104,7 @@ public:
 
     // Constructors
 
-        //- Construct with given channel name
+        //- Construct with given Catalyst input channel name
         explicit catalystInput(const word& channel);
 
 
@@ -114,7 +114,7 @@ public:
 
     // Member Functions
 
-        //- The name of the source (channel)
+        //- The name of the Catalyst input channel
         virtual const word& name() const
         {
             return name_;

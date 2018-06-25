@@ -59,26 +59,70 @@ Foam::vtk::fvMeshAdaptor::channelNames
 };
 
 
+// * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
+
+void Foam::vtk::fvMeshAdaptor::definePatchIds()
+{
+    // Generate or update the list of patchIds
+
+    patchIds_.clear();
+
+    if (!usingBoundary())
+    {
+        return;
+    }
+
+    // General patch information
+    // Restrict to non-processor patches.
+    // This value is invariant across all processors.
+
+    const polyBoundaryMesh& patches = mesh_.boundaryMesh();
+    const label nNonProcessor = patches.nNonProcessor();
+
+    if (patchPatterns_.empty())
+    {
+        patchIds_ = identity(nNonProcessor);
+    }
+    else
+    {
+        // Don't warn if not found, use patch groups
+        labelHashSet ids(patches.patchSet(patchPatterns_, false, true));
+
+        // Restricted to non-processor patches
+        ids.filterKeys
+        (
+            [nNonProcessor](label i){ return i < nNonProcessor; }
+        );
+
+        // MUST be sorted. Other internal logic relies upon this!
+        patchIds_ = ids.sortedToc();
+    }
+}
+
+
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 Foam::vtk::fvMeshAdaptor::fvMeshAdaptor
 (
     const fvMesh& mesh,
-    const bool decompose
+    const channelType channelsOpt,
+    const wordRes& patchSelection
 )
 :
     mesh_(mesh),
-    channels_(ALL),
+    patchPatterns_(patchSelection),
+    patchIds_(),
+    channels_(channelsOpt),
     interpFields_(true),
     extrapPatches_(false),
-    decomposePoly_(decompose),
+    decomposePoly_(false),
     meshState_(polyMesh::TOPO_CHANGE)
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void Foam::vtk::fvMeshAdaptor::channels(const wordList& chanNames)
+void Foam::vtk::fvMeshAdaptor::setChannels(const wordList& chanNames)
 {
     unsigned chanIds = 0;
     for (const word& chan : chanNames)
@@ -89,11 +133,11 @@ void Foam::vtk::fvMeshAdaptor::channels(const wordList& chanNames)
         }
     }
 
-    channels(chanIds);
+    setChannels(chanIds);
 }
 
 
-void Foam::vtk::fvMeshAdaptor::channels(enum channelType chanIds)
+void Foam::vtk::fvMeshAdaptor::setChannels(enum channelType chanIds)
 {
     channels_ = chanIds;
 
@@ -105,11 +149,12 @@ void Foam::vtk::fvMeshAdaptor::channels(enum channelType chanIds)
     if (!usingBoundary())
     {
         cachedVtp_.clear();
+        patchIds_.clear();
     }
 }
 
 
-void Foam::vtk::fvMeshAdaptor::channels(unsigned chanIds)
+void Foam::vtk::fvMeshAdaptor::setChannels(unsigned chanIds)
 {
     channels_ = (chanIds & 0x3);
 
@@ -121,6 +166,17 @@ void Foam::vtk::fvMeshAdaptor::channels(unsigned chanIds)
     if (!usingBoundary())
     {
         cachedVtp_.clear();
+        patchIds_.clear();
+    }
+}
+
+
+void Foam::vtk::fvMeshAdaptor::setDecompose(const bool val)
+{
+    if (usingInternal() && val != decomposePoly_)
+    {
+        cachedVtu_.clear();
+        decomposePoly_ = val;
     }
 }
 
@@ -143,23 +199,23 @@ bool Foam::vtk::fvMeshAdaptor::usingBoundary() const
 }
 
 
-Foam::label Foam::vtk::fvMeshAdaptor::nPatches() const
+const Foam::labelList& Foam::vtk::fvMeshAdaptor::patchIds() const
 {
-    // Restrict to non-processor patches.
-    // This value is invariant across all processors.
-
-    if (usingBoundary())
-    {
-        return mesh_.boundaryMesh().nNonProcessor();
-    }
-
-    return 0;
+    return patchIds_;
 }
 
 
 void Foam::vtk::fvMeshAdaptor::updateContent(const wordRes& selectFields)
 {
     const bool oldDecomp = decomposePoly_;
+
+    // General patch information
+    // Restrict to non-processor patches.
+    // This value is invariant across all processors.
+
+    const polyBoundaryMesh& patches = mesh_.boundaryMesh();
+    const label nNonProcessor = patches.nNonProcessor();
+
 
     // Update cached, saved, unneed values.
 
@@ -171,18 +227,15 @@ void Foam::vtk::fvMeshAdaptor::updateContent(const wordRes& selectFields)
         nowActive.insert(internalName());
     }
 
+
     // BOUNDARY
-
-    // Restrict to non-processor patches.
-    // This value is invariant across all processors.
-
-    const polyBoundaryMesh& patches = mesh_.boundaryMesh();
-    const label npatches = this->nPatches();
-
-    for (label patchId=0; patchId < npatches; ++patchId)
+    if (usingBoundary())
     {
-        const polyPatch& pp = patches[patchId];
-        nowActive.insert(pp.name());
+        for (label patchId=0; patchId < nNonProcessor; ++patchId)
+        {
+            const polyPatch& pp = patches[patchId];
+            nowActive.insert(pp.name());
+        }
     }
 
     // Dispose of unneeded components
@@ -206,6 +259,8 @@ void Foam::vtk::fvMeshAdaptor::updateContent(const wordRes& selectFields)
             iter.object().clearGeom();
             iter.object().clear();
         }
+
+        definePatchIds();
     }
     else if (oldDecomp != decomposePoly_)
     {
@@ -281,8 +336,7 @@ Foam::vtk::fvMeshAdaptor::output(const wordRes& select)
     }
 
     // BOUNDARY
-    const label npatches = this->nPatches();
-    if (npatches)
+    if (!patchIds_.empty())
     {
         unsigned int subBlockNo = 0;
 
@@ -290,7 +344,7 @@ Foam::vtk::fvMeshAdaptor::output(const wordRes& select)
 
         const polyBoundaryMesh& patches = mesh_.boundaryMesh();
 
-        for (label patchId=0; patchId < npatches; ++patchId)
+        for (const label patchId : patchIds_)
         {
             const polyPatch& pp = patches[patchId];
             const word& longName = pp.name();

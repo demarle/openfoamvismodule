@@ -62,13 +62,17 @@ void Foam::catalyst::faMeshInput::update()
 
     forAllConstIters(meshes_, iter)
     {
-        if (!backends_.found(iter.key()))
+        const word& areaName(iter.key());
+
+        if (!backends_.found(areaName))
         {
-            backends_.set
-            (
-                iter.key(),
-                new Foam::vtk::faMeshAdaptor(*(iter.object()))
-            );
+            auto backend =
+                autoPtr<Foam::vtk::faMeshAdaptor>::New(*(iter.object()));
+
+            // Apply any configuration options
+            // ...
+
+            backends_.set(areaName, backend);
         }
     }
 }
@@ -214,7 +218,6 @@ bool Foam::catalyst::faMeshInput::convert
     for (const word& areaName : areaNames)
     {
         auto dataset = backends_[areaName]->output(selectFields_);
-
 
         // Existing or new
         vtkSmartPointer<vtkMultiBlockDataSet> block =

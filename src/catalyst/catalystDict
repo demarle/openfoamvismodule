@@ -38,6 +38,9 @@ catalyst
             // Emit internal mesh/fields
             internal true;
 
+            // Restrict boundary conversion to specific patches
+            patches (walls "*.top");
+
             // Selected fields (words or regex)
             fields  (T U p);
         }

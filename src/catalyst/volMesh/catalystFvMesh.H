@@ -50,6 +50,7 @@ Usage
         type        | input type: \c default                | no    | default
         region      | name for a single region              | no    | region0
         regions     | wordRe list of regions                | no    |
+        patches     | explicit wordRe list of patches       | no    |
         fields      | wordRe list of fields                 | yes   |
         boundary    | convert boundary fields               | no    | true
         internal    | convert internal fields               | no    | true
@@ -83,6 +84,10 @@ Usage
 
 Note
     The channel name is that of the defining dictionary.
+    If the \c patches entry is missing or an empty list,
+    all non-processor patches will be used for the boundary.
+    When it is non-empty, only the explicitly specified (non-processor)
+    patch names will be used.
 
 See also
     Foam::vtk::fvMeshAdaptor
@@ -134,6 +139,9 @@ protected:
 
         //- Requested names of regions to process
         wordRes selectRegions_;
+
+        //- Requested names of patches to process
+        wordRes selectPatches_;
 
         //- Names of fields to process
         wordRes selectFields_;

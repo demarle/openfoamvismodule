@@ -69,9 +69,7 @@ void Foam::vtk::fvMeshAdaptor::convertVolField
     convertVolFieldInternal(fld, ptfPtr);
 
     // BOUNDARY
-    const label npatches = this->nPatches();
-
-    for (label patchId=0; patchId < npatches; ++patchId)
+    for (const label patchId : patchIds_)
     {
         const polyPatch& pp = patches[patchId];
         const word& longName = pp.name();
@@ -125,7 +123,11 @@ void Foam::vtk::fvMeshAdaptor::convertVolField
 
             transcribeFloatData(cdata, tpptf());
 
-            if (interpFields_ && patchId < patchInterpList.size())
+            if
+            (
+                patchId < patchInterpList.size()
+             && patchInterpList.set(patchId)
+            )
             {
                 pdata = vtk::Tools::convertFieldToVTK
                 (
@@ -138,7 +140,11 @@ void Foam::vtk::fvMeshAdaptor::convertVolField
         {
             transcribeFloatData(cdata, ptf);
 
-            if (interpFields_ && patchId < patchInterpList.size())
+            if
+            (
+                patchId < patchInterpList.size()
+             && patchInterpList.set(patchId)
+            )
             {
                 pdata = vtk::Tools::convertFieldToVTK
                 (

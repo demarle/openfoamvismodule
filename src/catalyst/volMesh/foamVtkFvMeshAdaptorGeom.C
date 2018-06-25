@@ -90,9 +90,8 @@ void Foam::vtk::fvMeshAdaptor::convertGeometryBoundary()
     // BOUNDARY
 
     const polyBoundaryMesh& patches = mesh_.boundaryMesh();
-    const label npatches = this->nPatches();
 
-    for (label patchId=0; patchId < npatches; ++patchId)
+    for (const label patchId : patchIds_)
     {
         const polyPatch& pp = patches[patchId];
         const word& longName = pp.name();
@@ -233,9 +232,8 @@ void Foam::vtk::fvMeshAdaptor::applyGhostingBoundary(const labelUList& types)
     }
 
     const polyBoundaryMesh& patches = mesh_.boundaryMesh();
-    const label npatches = this->nPatches();
 
-    for (label patchId=0; patchId < npatches; ++patchId)
+    for (const label patchId : patchIds_)
     {
         const polyPatch& pp = patches[patchId];
         const word& longName = pp.name();

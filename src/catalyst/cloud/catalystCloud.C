@@ -139,7 +139,6 @@ bool Foam::catalyst::cloudInput::convert
         auto dataset =
             vtk::cloudAdaptor(fvm).getCloud(cloudName, selectFields_);
 
-
         // Existing or new
         vtkSmartPointer<vtkMultiBlockDataSet> block =
             outputs.lookup

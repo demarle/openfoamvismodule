@@ -170,6 +170,12 @@ private:
         //- OpenFOAM mesh
         const fvMesh& mesh_;
 
+        //- In non-empty, restrict to these selected patches only
+        wordRes patchPatterns_;
+
+        //- Cached values for selected patches. *Always* in sorted order.
+        labelList patchIds_;
+
         //- Selected output channels
         unsigned channels_;
 
@@ -194,6 +200,9 @@ private:
 
 
     // Mesh Conversion
+
+        //- Define patch ids
+        void definePatchIds();
 
         //- Convert internal
         void convertGeometryInternal();
@@ -293,7 +302,12 @@ public:
     // Constructors
 
         //- Construct from components
-        fvMeshAdaptor(const fvMesh& mesh, const bool decompose=false);
+        fvMeshAdaptor
+        (
+            const fvMesh& mesh,
+            const channelType channelsOpt = channelType::DEFAULT,
+            const wordRes& patchSelection = wordRes()
+        );
 
 
     //- Destructor
@@ -303,13 +317,17 @@ public:
     // Member Functions
 
         //- Define the output channels by name
-        void channels(const wordList& chanNames);
+        void setChannels(const wordList& chanNames);
 
         //- Define the output channels by enum
-        void channels(enum channelType chanIds);
+        void setChannels(enum channelType chanIds);
 
         //- Define the output channels by value
-        void channels(unsigned chanIds);
+        void setChannels(unsigned chanIds);
+
+        //- Define polyhedral decomposition treatment
+        void setDecompose(const bool on);
+
 
         //- Return the selected output channel ids
         label channels() const;
@@ -320,9 +338,9 @@ public:
         //- True if BOUNDARY channel is being used
         bool usingBoundary() const;
 
-        //- Number of non-processor patches, when the BOUNDARY channel is being
-        //- used - otherwise 0.
-        label nPatches() const;
+        //- Selected (non-processor) patch ids, when the BOUNDARY channel
+        //- is being used. Empty otherwise.
+        const labelList& patchIds() const;
 
         //- Return the names of known (supported) fields
         wordHashSet knownFields(const wordRes& selectFields) const;

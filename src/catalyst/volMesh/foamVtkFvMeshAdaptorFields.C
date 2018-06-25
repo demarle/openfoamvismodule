@@ -105,21 +105,23 @@ void Foam::vtk::fvMeshAdaptor::convertVolFields
 
     PtrList<patchInterpolator> interpLst;
 
-    if (interpFields_)
+    if (interpFields_ && patchIds_.size())
     {
-        // NOTE: this will be broken with processor patches, but
-        // for the catalyst adaptor we explicitly restrict ourselves
-        // to non-processor patches
-        interpLst.setSize(this->nPatches());
+        // NOTE: this would be broken with processor patches,
+        // but we don't allow them for the catalyst adaptor anyhow
 
-        forAll(interpLst, i)
+        // patchIds_ are sorted, so the last one is also the max
+
+        interpLst.setSize(patchIds_.last() + 1);
+
+        for (const label patchId : patchIds_)
         {
             interpLst.set
             (
-                i,
+                patchId,
                 new PrimitivePatchInterpolation<primitivePatch>
                 (
-                    mesh_.boundaryMesh()[i]
+                    mesh_.boundaryMesh()[patchId]
                 )
             );
         }

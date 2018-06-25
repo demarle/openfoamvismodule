@@ -60,13 +60,22 @@ void Foam::catalyst::fvMeshInput::update()
 
     forAllConstIters(meshes_, iter)
     {
-        if (!backends_.found(iter.key()))
+        const word& regionName = iter.key();
+
+        if (!backends_.found(regionName))
         {
-            backends_.set
-            (
-                iter.key(),
-                new Foam::vtk::fvMeshAdaptor(*(iter.object()), decomposeOpt_)
-            );
+            auto backend =
+                autoPtr<Foam::vtk::fvMeshAdaptor>::New
+                (
+                    *(iter.object()),
+                    channelOpt_,
+                    selectPatches_
+                );
+
+            // Special polyhedral treatment?
+            backend->setDecompose(decomposeOpt_);
+
+            backends_.set(regionName, backend);
         }
     }
 }
@@ -86,6 +95,7 @@ Foam::catalyst::fvMeshInput::fvMeshInput
     channelOpt_(channelType::DEFAULT),
     decomposeOpt_(false),
     selectRegions_(),
+    selectPatches_(),
     selectFields_(),
     meshes_(),
     backends_()
@@ -102,8 +112,9 @@ bool Foam::catalyst::fvMeshInput::read(const dictionary& dict)
 
     meshes_.clear();
     backends_.clear();
-    selectFields_.clear();
     selectRegions_.clear();
+    selectPatches_.clear();
+    selectFields_.clear();
     decomposeOpt_ = dict.lookupOrDefault("decompose", false);
 
     unsigned selected(channelType::NONE);
@@ -132,6 +143,7 @@ bool Foam::catalyst::fvMeshInput::read(const dictionary& dict)
     // All possible meshes
     meshes_ = time_.lookupClass<fvMesh>();
 
+    dict.readIfPresent("patches", selectPatches_);
     dict.readIfPresent("regions", selectRegions_);
 
     if (selectRegions_.empty())
@@ -226,11 +238,7 @@ bool Foam::catalyst::fvMeshInput::convert
 
     for (const word& regionName : regionNames)
     {
-        // Define/redefine output channels (caching)
-        backends_[regionName]->channels(channelOpt_);
-
         auto dataset = backends_[regionName]->output(selectFields_);
-
 
         // Existing or new
         vtkSmartPointer<vtkMultiBlockDataSet> block =

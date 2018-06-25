@@ -19,7 +19,6 @@ catalyst
 
     scripts
     (
-        // "<etc>/caseDicts/insitu/catalyst/printChannels.py"
         "<etc>/caseDicts/insitu/catalyst/writeAll.py"
     );
 

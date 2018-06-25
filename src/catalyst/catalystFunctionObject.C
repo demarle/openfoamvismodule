@@ -336,7 +336,15 @@ bool Foam::functionObjects::catalystFunctionObject::execute()
 
     if (outputs.size())
     {
-        Log << type() << ": send data" << nl;
+        if (log)
+        {
+            Info<< type() << ": send data (";
+            for (const word& channelName : outputs.sortedToc())
+            {
+                Info<< ' ' << channelName;
+            }
+            Info<< " )" << nl;
+        }
 
         adaptor_().process(dataq, outputs);
     }
@@ -373,6 +381,8 @@ bool Foam::functionObjects::catalystFunctionObject::end()
     }
 
     adaptor_.clear();
+    inputs_.clear();
+
     return true;
 }
 

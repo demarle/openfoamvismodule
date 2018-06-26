@@ -56,12 +56,6 @@ else()
 endif()
 
 
-set(LIBRARY_OUTPUT_PATH ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}
-    CACHE INTERNAL
-    ""
-)
-
-
 file(GLOB SOURCE_FILES
     catalystCoprocess.C
     catalystTools.C
@@ -113,5 +107,7 @@ target_link_libraries(
     ${LINK_LIBRARIES}
     ${OPENFOAM_LIBRARIES}
 )
+
+install(TARGETS catalystFoam DESTINATION lib)
 
 #-----------------------------------------------------------------------------

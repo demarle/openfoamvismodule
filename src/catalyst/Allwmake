@@ -4,14 +4,21 @@ cd "${0%/*}" || exit                                # Run from this directory
 #------------------------------------------------------------------------------
 
 # CMake into objectsDir with external dependency
-# - Can this function can be removed with OpenFOAM-1812 ?
+#
+# 1 - depend
+# 2 - sourceDir
+# 3... optional cmake defines
+#
+# Available directly in OpenFOAM-1812 but left here for a while
+# to ensure we can build with slightly older versions too (2018-11-29)
+#
 unset -f cmakeVersionedInstall 2>/dev/null
 cmakeVersionedInstall()
 {
     local depend="$1"
     local sourceDir="$2"
-    local objectsDir
     shift 2
+    local objectsDir sentinel
 
     # Where generated files are stored
     objectsDir=$(findObjectDir "$sourceDir") || exit 1 # Fatal
@@ -20,8 +27,8 @@ cmakeVersionedInstall()
     sentinel=$(sameDependency "$depend" "$sourceDir") || \
         rm -rf "$objectsDir" > /dev/null 2>&1
 
-    mkdir -p $objectsDir \
-    && (cd $objectsDir && _cmake "$@" $sourceDir && make install) \
+    mkdir -p "$objectsDir" \
+    && (cd "$objectsDir" && _cmake "$@" "$sourceDir" && make install) \
     && echo "$depend" >| "${sentinel:-/dev/null}"
 }
 

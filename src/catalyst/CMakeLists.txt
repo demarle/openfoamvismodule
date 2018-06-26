@@ -1,25 +1,17 @@
 #------------------------------------------------------------------------------
 cmake_minimum_required(VERSION 2.8)
+cmake_policy(SET CMP0002 NEW)   # Policy CMP0002 required for for cmake >= 3
 
-# Fail immediately if not using an out-of-source build
+# Fail if not building out-of-source
 if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
     message(FATAL_ERROR
-        "In-source builds are not supported.  Please create a build directory "
-        "separate from the source directory")
+        "In-source builds disallowed. Use a separate build directory")
 endif()
 
-project(catalyst)
-
-# Set policy for CMP0002 needed for cmake > 3
-cmake_policy(SET CMP0002 OLD)
-
+include(CMakeLists-OpenFOAM.txt)
 
 #------------------------------------------------------------------------------
 # Simple sanity checks
-
-if (NOT EXISTS "$ENV{WM_PROJECT_DIR}")
-    message(FATAL_ERROR "WM_PROJECT_DIR not set")
-endif()
 
 if (EXISTS "$ENV{ParaView_DIR}")
     find_package(ParaView REQUIRED COMPONENTS vtkPVPythonCatalyst)
@@ -43,6 +35,6 @@ message("================")
 
 #-----------------------------------------------------------------------------
 
-include(CMakeLists-Common.txt)
+include(CMakeLists-Project.txt)
 
 #-----------------------------------------------------------------------------

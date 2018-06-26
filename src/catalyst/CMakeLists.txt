@@ -28,16 +28,6 @@ else()
 endif()
 
 
-#------------------------------------------------------------------------------
-# Installation locations (not much)
-# - default install into FOAM_LIBBIN
-
-if ((NOT CMAKE_LIBRARY_OUTPUT_DIRECTORY) OR
-    ("${CMAKE_LIBRARY_OUTPUT_DIRECTORY}" STREQUAL "default"))
-    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY $ENV{FOAM_LIBBIN})
-endif()
-
-
 #-----------------------------------------------------------------------------
 # All messages
 
@@ -47,8 +37,7 @@ message("Using ParaView = $ENV{ParaView_DIR}")
 if (NOT PARAVIEW_USE_MPI)
     message(WARNING "==== Recommended to build using ParaView Catalyst with MPI ====")
 endif()
-message("install libdir = ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}")
-message("install installdir = ${CMAKE_INSTALL_PREFIX}")
+message("install prefix = ${CMAKE_INSTALL_PREFIX}")
 message("================")
 
 

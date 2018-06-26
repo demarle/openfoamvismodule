@@ -4,12 +4,14 @@ cd "${0%/*}" || exit                                # Run from this directory
 #------------------------------------------------------------------------------
 
 # CMake into objectsDir with external dependency
-# - This function override can be removed with OpenFOAM-1806
-cmakeVersioned()
+# - Can this function can be removed with OpenFOAM-1812 ?
+unset -f cmakeVersionedInstall 2>/dev/null
+cmakeVersionedInstall()
 {
     local depend="$1"
     local sourceDir="$2"
     local objectsDir
+    shift 2
 
     # Where generated files are stored
     objectsDir=$(findObjectDir "$sourceDir") || exit 1 # Fatal
@@ -19,9 +21,24 @@ cmakeVersioned()
         rm -rf "$objectsDir" > /dev/null 2>&1
 
     mkdir -p $objectsDir \
-    && (cd $objectsDir && _cmake $sourceDir && make) \
+    && (cd $objectsDir && _cmake "$@" $sourceDir && make install) \
     && echo "$depend" >| "${sentinel:-/dev/null}"
 }
+
+#------------------------------------------------------------------------------
+
+# Installation prefix: user/group/other or custom
+case "$1" in
+    -prefix=u) prefix="${FOAM_USER_LIBBIN%/*}" ;; # user
+    -prefix=g) prefix="${FOAM_SITE_LIBBIN%/*}" ;; # group
+    -prefix=o) prefix="${FOAM_LIBBIN%/*}" ;; # other/openfoam
+    -prefix=*) prefix="${1#*=}" ;;
+esac
+
+# Default is openfoam (FOAM_LIBBIN)
+: "${prefix:=$WM_PROJECT_DIR/platforms/$WM_OPTIONS}"
+
+cmakeOpts="-DCMAKE_INSTALL_PREFIX=$prefix"
 
 #------------------------------------------------------------------------------
 
@@ -43,7 +60,8 @@ elif [ -n "$depend" ]
 then
     if command -v cmake >/dev/null
     then
-        cmakeVersioned "$depend" "$PWD" || {
+        echo "catalyst prefix : $prefix"
+        cmakeVersionedInstall "$depend" "$PWD" "$cmakeOpts" || {
             echo
             echo "    WARNING: incomplete build of ParaView Catalyst"
             echo

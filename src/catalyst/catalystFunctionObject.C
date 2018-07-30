@@ -192,8 +192,8 @@ bool Foam::functionObjects::catalystFunctionObject::read(const dictionary& dict)
         Foam::mkDir(outputDir_);
     }
 
-    dict.read("scripts", scripts_);     // Python scripts
-    expand(scripts_, dict);             // Expand and check availability
+    dict.readEntry("scripts", scripts_);    // Python scripts
+    expand(scripts_, dict);                 // Expand and check availability
 
 
     // Any changes detected

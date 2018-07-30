@@ -156,7 +156,7 @@ bool Foam::catalyst::fvMeshInput::read(const dictionary& dict)
     // Restrict to specified meshes
     meshes_.filterKeys(selectRegions_);
 
-    dict.read("fields", selectFields_);
+    dict.readEntry("fields", selectFields_);
 
     return true;
 }

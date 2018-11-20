@@ -28,6 +28,7 @@ License
 #include <vtkCPDataDescription.h>
 #include <vtkCPInputDataDescription.h>
 #include <vtkCPProcessor.h>
+#include <vtkDataObject.h>
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -175,10 +176,16 @@ Foam::label Foam::catalyst::dataQuery::query(vtkCPProcessor* coproc)
         descrip->AddInput(channel.c_str());
         auto* input = descrip->GetInputDescriptionByName(channel.c_str());
 
-        for (const word& fieldName : dataq.fields(channel))
+        for (const word& fldName : dataq.fields(channel))
         {
-            input->AddPointField(fieldName.c_str());
-            input->AddCellField(fieldName.c_str());
+            #if (PARAVIEW_VERSION_MAJOR == 5) && \
+                (PARAVIEW_VERSION_MINOR < 6)
+            input->AddPointField(fldName.c_str());
+            input->AddCellField(fldName.c_str());
+            #else
+            input->AddField(fldName.c_str(), vtkDataObject::CELL);
+            input->AddField(fldName.c_str(), vtkDataObject::POINT);
+            #endif
         }
     }
 
@@ -200,12 +207,24 @@ Foam::label Foam::catalyst::dataQuery::query(vtkCPProcessor* coproc)
         {
             wordHashSet requestedFields;
 
-            for (const word& fieldName : dataq.fields(channel))
+            for (const word& fldName : dataq.fields(channel))
             {
-                if (input->IsFieldNeeded(fieldName.c_str()))
+                #if (PARAVIEW_VERSION_MAJOR == 5) && \
+                    (PARAVIEW_VERSION_MINOR < 6)
+                if (input->IsFieldNeeded(fldName.c_str()))
                 {
-                    requestedFields.insert(fieldName);
+                    requestedFields.insert(fldName);
                 }
+                #else
+                if
+                (
+                    input->IsFieldNeeded(fldName.c_str(), vtkDataObject::CELL)
+                 || input->IsFieldNeeded(fldName.c_str(), vtkDataObject::POINT)
+                )
+                {
+                    requestedFields.insert(fldName);
+                }
+                #endif
             }
 
             dataq.set(channel, requestedFields);

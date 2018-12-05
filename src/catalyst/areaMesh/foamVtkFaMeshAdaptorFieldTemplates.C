@@ -43,16 +43,15 @@ void Foam::vtk::faMeshAdaptor::convertAreaFields
     const wordRes& selectFields
 )
 {
-    typedef GeometricField<Type, faPatchField, areaMesh> FieldType;
+    const auto& obr = mesh_.mesh();
 
-    // Restrict to GeometricField<Type, ...>
-    const wordList names(mesh_.mesh().sortedNames<FieldType>(selectFields));
+    typedef GeometricField<Type, faPatchField, areaMesh> fieldType;
 
-    for (const word& fieldName : names)
+    for (const word& fieldName : obr.sortedNames<fieldType>(selectFields))
     {
         convertAreaField
         (
-            mesh_.mesh().lookupObject<FieldType>(fieldName)
+            obr.lookupObject<fieldType>(fieldName)
         );
     }
 }
@@ -97,37 +96,8 @@ Foam::vtk::faMeshAdaptor::convertAreaFieldToVTK
     const foamVtpData& vtpData
 ) const
 {
-    const int nComp(pTraits<Type>::nComponents);
-
-    auto data = vtkSmartPointer<vtkFloatArray>::New();
-    data->SetName(fld.name().c_str());
-    data->SetNumberOfComponents(nComp);
-    data->SetNumberOfTuples(fld.size());
-
-    const label len = fld.size();
-
-    if (debug)
-    {
-        Info<< "convert areaField: "
-            << fld.name()
-            << " size=" << len
-            << " nComp=" << nComp << endl;
-    }
-
-    float scratch[nComp];
-    for (label i=0; i < len; ++i)
-    {
-        const Type& t = fld[i];
-        for (direction d=0; d<nComp; ++d)
-        {
-            scratch[d] = component(t, d);
-        }
-        remapTuple<Type>(scratch);
-
-        data->SetTuple(i, scratch);
-    }
-
-    return data;
+    // The vtpData is not used for anything
+    return vtk::Tools::convertFieldToVTK(fld.name(), fld);
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

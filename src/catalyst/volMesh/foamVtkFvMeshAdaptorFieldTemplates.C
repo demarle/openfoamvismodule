@@ -173,17 +173,20 @@ void Foam::vtk::fvMeshAdaptor::convertVolFields
     const wordRes& selectFields
 )
 {
-    typedef GeometricField<Type, fvPatchField, volMesh> FieldType;
+    typedef GeometricField<Type, fvPatchField, volMesh> fieldType;
 
     // Restrict to GeometricField<Type, ...>
-    const wordList names(mesh_.sortedNames<FieldType>(selectFields));
 
-    for (const word& fieldName : names)
+    for
+    (
+        const word& fieldName
+      : mesh_.sortedNames<fieldType>(selectFields)
+    )
     {
         convertVolField
         (
             patchInterpList,
-            mesh_.lookupObject<FieldType>(fieldName)
+            mesh_.lookupObject<fieldType>(fieldName)
         );
     }
 }
@@ -274,75 +277,50 @@ vtkSmartPointer<vtkFloatArray> Foam::vtk::fvMeshAdaptor::convertPointField
         data->SetName(pfld.name().c_str());
     }
 
-    if (debug)
-    {
-        Info<< "convert Point field: "
-            << pfld.name()
-            << " size="  << (nPoints + addPointCellLabels.size())
-            << " (" << nPoints << " + " << addPointCellLabels.size()
-            << ") nComp=" << nComp << endl;
-    }
+    DebugInfo
+        << "convert Point field: " << pfld.name()
+        << " size="  << (nPoints + addPointCellLabels.size())
+        << " (" << nPoints << " + " << addPointCellLabels.size()
+        << ") nComp=" << nComp << endl;
 
-    float vec[pTraits<Type>::nComponents];
 
-    label pointi = 0;
+    float scratch[pTraits<Type>::nComponents];
+
+    vtkIdType pointi = 0;
     if (pointMap.size())
     {
-        forAll(pointMap, i)
+        for (const label meshPointi : pointMap)
         {
-            const Type& t = pfld[pointMap[i]];
-            for (direction d=0; d<nComp; ++d)
-            {
-                vec[d] = component(t, d);
-            }
-            remapTuple<Type>(vec);
-
-            data->SetTuple(pointi++, vec);
+            foamToVtkTuple(scratch, pfld[meshPointi]);
+            data->SetTuple(pointi++, scratch);
         }
     }
     else
     {
-        forAll(pfld, i)
+        for (const Type& val : pfld)
         {
-            const Type& t = pfld[i];
-            for (direction d=0; d<nComp; ++d)
-            {
-                vec[d] = component(t, d);
-            }
-            remapTuple<Type>(vec);
-
-            data->SetTuple(pointi++, vec);
+            foamToVtkTuple(scratch, val);
+            data->SetTuple(pointi++, scratch);
         }
     }
 
     // Continue with additional points
+    // - correspond to cell centres
 
     if (notNull(vfld))
     {
-        forAll(addPointCellLabels, apI)
+        for (const label meshCelli : addPointCellLabels)
         {
-            const Type& t = vfld[addPointCellLabels[apI]];
-            for (direction d=0; d<nComp; ++d)
-            {
-                vec[d] = component(t, d);
-            }
-            remapTuple<Type>(vec);
-
-            data->SetTuple(pointi++, vec);
+            foamToVtkTuple(scratch, vfld[meshCelli]);
+            data->SetTuple(pointi++, scratch);
         }
     }
     else
     {
-        forAll(addPointCellLabels, apI)
+        for (const label meshCelli : addPointCellLabels)
         {
-            Type t = interpolatePointToCell(pfld, addPointCellLabels[apI]);
-            for (direction d=0; d<nComp; ++d)
-            {
-                vec[d] = component(t, d);
-            }
-            remapTuple<Type>(vec);
-
-            data->SetTuple(pointi++, vec);
+            foamToVtkTuple(scratch, interpolatePointToCell(pfld, meshCelli));
+            data->SetTuple(pointi++, scratch);
         }
     }
 
@@ -371,27 +349,21 @@ Foam::vtk::fvMeshAdaptor::convertVolFieldToVTK
     data->SetNumberOfComponents(nComp);
     data->SetNumberOfTuples(cellMap.size());
 
-    if (debug)
-    {
-        Info<< "convert volField: "
-            << fld.name()
-            << " size=" << cellMap.size()
-            << " (" << fld.size() << " + "
-            << (cellMap.size() - fld.size())
-            << ") nComp=" << nComp << endl;
-    }
+    DebugInfo
+        << "convert volField: " << fld.name()
+        << " size=" << cellMap.size()
+        << " (" << fld.size() << " + "
+        << (cellMap.size() - fld.size())
+        << ") nComp=" << nComp << endl;
 
-    float scratch[nComp];
-    forAll(cellMap, i)
-    {
-        const Type& t = fld[cellMap[i]];
-        for (direction d=0; d<nComp; ++d)
-        {
-            scratch[d] = component(t, d);
-        }
-        remapTuple<Type>(scratch);
 
-        data->SetTuple(i, scratch);
+    float scratch[pTraits<Type>::nComponents];
+
+    vtkIdType celli = 0;
+    for (const label meshCelli : cellMap)
+    {
+        foamToVtkTuple(scratch, fld[meshCelli]);
+        data->SetTuple(celli++, scratch);
     }
 
     return data;

@@ -34,55 +34,30 @@ License
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-namespace Foam
-{
-
-template<class Type>
-static wordHashSet supportedTypes()
-{
-    // typedef DimensionedField<Type, volMesh> DimFieldType;
-    typedef GeometricField<Type, fvPatchField, volMesh> VolFieldType;
-
-    wordHashSet types;
-
-    // TODO: types.insert(DimFieldType::typeName);
-    types.insert(VolFieldType::typeName);
-
-    return types;
-}
-
-} // End namespace Foam
-
-
 Foam::wordHashSet Foam::vtk::fvMeshAdaptor::knownFields
 (
     const wordRes& selectFields
 ) const
 {
-    wordHashSet allFields;
-
     // Quick exit if no volume fields can be converted.
     // This could be refined
     HashTable<wordHashSet> objects = mesh_.classes(selectFields);
 
-    if (objects.empty())
-    {
-        return allFields;
-    }
-
-    wordHashSet types;
-
-    types += supportedTypes<scalar>();
-    types += supportedTypes<vector>();
-    types += supportedTypes<sphericalTensor>();
-    types += supportedTypes<symmTensor>();
-    types += supportedTypes<tensor>();
-
-    objects.retain(types);
+    wordHashSet allFields(2*objects.size());
 
     forAllConstIters(objects, iter)
     {
-        allFields += iter.object();
+        const word& clsName = iter.key();
+
+        if
+        (
+            fieldTypes::volume.found(clsName)
+            // TODO
+            // || fieldTypes::internal.found(clsName)
+        )
+        {
+            allFields += iter.object();
+        }
     }
 
     return allFields;

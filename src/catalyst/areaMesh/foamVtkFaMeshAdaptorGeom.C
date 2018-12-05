@@ -40,19 +40,16 @@ void Foam::vtk::faMeshAdaptor::convertGeometryInternal()
         if (meshState_ == polyMesh::UNCHANGED)
         {
             // Without movement is easy.
-            if (debug)
-            {
-                Info<< "reuse " << longName << nl;
-            }
+            DebugInfo
+                << "reuse " << longName << nl;
+
             vtpData.reuse();
             return;
         }
         else if (meshState_ == polyMesh::POINTS_MOVED)
         {
-            if (debug)
-            {
-                Info<< "move points " << longName << nl;
-            }
+            DebugInfo
+                << "move points " << longName << nl;
 
             vtkgeom = vtpData.getCopy();
             vtkgeom->SetPoints
@@ -64,10 +61,8 @@ void Foam::vtk::faMeshAdaptor::convertGeometryInternal()
 
     if (!vtkgeom)
     {
-        if (debug)
-        {
-            Info<< "Nothing usable from cache - create new geometry" << nl;
-        }
+        DebugInfo
+            << "Nothing usable from cache - create new geometry" << nl;
 
         vtkgeom = vtk::Tools::Patch::mesh(mesh_.patch());
     }

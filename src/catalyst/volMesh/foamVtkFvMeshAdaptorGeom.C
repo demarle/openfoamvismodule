@@ -52,19 +52,17 @@ void Foam::vtk::fvMeshAdaptor::convertGeometryInternal()
     {
         if (meshState_ == polyMesh::UNCHANGED)
         {
-            if (debug)
-            {
-                Info<< "reuse " << longName << nl;
-            }
+            DebugInfo
+                << "reuse " << longName << nl;
+
             vtuData.reuse();  // No movement - simply reuse
             return;
         }
         else if (meshState_ == polyMesh::POINTS_MOVED)
         {
-            if (debug)
-            {
-                Info<< "move points " << longName << nl;
-            }
+            DebugInfo
+                << "move points " << longName << nl;
+
             vtkgeom = vtuData.getCopy();
             vtkgeom->SetPoints(vtuData.points(mesh_));
         }
@@ -72,10 +70,8 @@ void Foam::vtk::fvMeshAdaptor::convertGeometryInternal()
 
     if (!vtkgeom)
     {
-        if (debug)
-        {
-            Info<< "Nothing usable from cache - create new geometry" << nl;
-        }
+        DebugInfo
+            << "Nothing usable from cache - create new geometry" << nl;
 
         // Nothing usable from cache - create new geometry
         vtkgeom = vtuData.internal(mesh_, decomposePoly_);
@@ -103,20 +99,18 @@ void Foam::vtk::fvMeshAdaptor::convertGeometryBoundary()
         {
             if (meshState_ == polyMesh::UNCHANGED)
             {
-                if (debug)
-                {
-                    Info<< "reuse " << longName << nl;
-                }
+                DebugInfo
+                    << "reuse " << longName << nl;
+
                 vtpData.reuse();  // No movement - simply reuse
                 continue;
             }
             else if (meshState_ == polyMesh::POINTS_MOVED)
             {
                 // Point movement on single patch
-                if (debug)
-                {
-                    Info<< "move points " << longName << nl;
-                }
+                DebugInfo
+                    << "move points " << longName << nl;
+
                 vtkgeom = vtpData.getCopy();
                 vtkgeom->SetPoints(vtk::Tools::Patch::points(pp));
             }
@@ -124,11 +118,9 @@ void Foam::vtk::fvMeshAdaptor::convertGeometryBoundary()
 
         vtpData.clear(); // Remove any old mappings
 
-        if (debug)
-        {
-            Info<< "Creating VTK mesh for patch [" << patchId <<"] "
-                << longName << endl;
-        }
+        DebugInfo
+            << "Creating VTK mesh for patch [" << patchId <<"] "
+            << longName << endl;
 
         // Unused information
         vtpData.additionalIds().clear();

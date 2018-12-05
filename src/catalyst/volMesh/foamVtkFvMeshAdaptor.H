@@ -141,7 +141,6 @@ private:
             public vtk::Caching<vtkUnstructuredGrid>,
             public foamVtkMeshMaps
         {
-
             //- The vtk points for the mesh (and decomposition)
             vtkSmartPointer<vtkPoints> points
             (

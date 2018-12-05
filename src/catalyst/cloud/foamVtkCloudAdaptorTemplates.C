@@ -37,25 +37,28 @@ Foam::label Foam::vtk::cloudAdaptor::convertLagrangianFields
     const objectRegistry& obr
 )
 {
-    const wordList fieldNames(obr.sortedNames<IOField<Type>>());
+    typedef IOField<Type> fieldType;
 
-    for (const word& fieldName : fieldNames)
+    label nFields = 0;
+
+    for (const word& fieldName : obr.sortedNames<fieldType>())
     {
-        const auto& fld = obr.lookupObject<IOField<Type>>(fieldName);
+        const auto& fld = obr.lookupObject<fieldType>(fieldName);
 
-        vtkSmartPointer<vtkFloatArray> data =
-            vtk::Tools::convertFieldToVTK
-            (
-                fieldName,
-                fld
-            );
+        vtkSmartPointer<vtkFloatArray> data = vtk::Tools::convertFieldToVTK
+        (
+            fld.name(),
+            fld
+        );
 
         // Provide identical data as cell and as point data
         vtkmesh->GetCellData()->AddArray(data);
         vtkmesh->GetPointData()->AddArray(data);
+
+        ++nFields;
     }
 
-    return fieldNames.size();
+    return nFields;
 }
 
 

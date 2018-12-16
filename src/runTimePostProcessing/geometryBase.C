@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2015-2016 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2015-2018 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,6 +27,7 @@ License
 #include "runTimePostProcessing.H"
 #include "Constant.H"
 
+// VTK includes
 #include "vtkActor.h"
 #include "vtkProperty.h"
 
@@ -81,7 +82,7 @@ Foam::functionObjects::runTimePostPro::geometryBase::geometryBase
 (
     const runTimePostProcessing& parent,
     const dictionary& dict,
-    const HashPtrTable<Function1<vector>, word>& colours
+    const HashPtrTable<Function1<vector>>& colours
 )
 :
     parent_(parent),
@@ -96,7 +97,7 @@ Foam::functionObjects::runTimePostPro::geometryBase::geometryBase
 {
     if (dict.found("opacity"))
     {
-        opacity_.reset(Function1<scalar>::New("opacity", dict).ptr());
+        opacity_.reset(Function1<scalar>::New("opacity", dict));
     }
     else
     {

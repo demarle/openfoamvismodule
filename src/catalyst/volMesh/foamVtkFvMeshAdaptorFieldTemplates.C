@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2017-2018 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2017-2019 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -94,7 +94,7 @@ void Foam::vtk::fvMeshAdaptor::convertVolField
         // To improve code reuse, we allocate the CellData as a zeroed-field
         // ahead of time.
 
-        vtkSmartPointer<vtkFloatArray> cdata = zeroField<Type>
+        vtkSmartPointer<vtkFloatArray> cdata = vtk::Tools::zeroField<Type>
         (
             fld.name(),
             dataset->GetNumberOfPolys()
@@ -121,7 +121,7 @@ void Foam::vtk::fvMeshAdaptor::convertVolField
                 fvPatchField<Type>(p, fld).patchInternalField()
             );
 
-            transcribeFloatData(cdata, tpptf());
+            vtk::Tools::transcribeFloatData(cdata, tpptf());
 
             if
             (
@@ -138,7 +138,7 @@ void Foam::vtk::fvMeshAdaptor::convertVolField
         }
         else
         {
-            transcribeFloatData(cdata, ptf);
+            vtk::Tools::transcribeFloatData(cdata, ptf);
 
             if
             (
@@ -291,7 +291,7 @@ vtkSmartPointer<vtkFloatArray> Foam::vtk::fvMeshAdaptor::convertPointField
     {
         for (const label meshPointi : pointMap)
         {
-            foamToVtkTuple(scratch, pfld[meshPointi]);
+            vtk::Tools::foamToVtkTuple(scratch, pfld[meshPointi]);
             data->SetTuple(pointi++, scratch);
         }
     }
@@ -299,7 +299,7 @@ vtkSmartPointer<vtkFloatArray> Foam::vtk::fvMeshAdaptor::convertPointField
     {
         for (const Type& val : pfld)
         {
-            foamToVtkTuple(scratch, val);
+            vtk::Tools::foamToVtkTuple(scratch, val);
             data->SetTuple(pointi++, scratch);
         }
     }
@@ -311,7 +311,7 @@ vtkSmartPointer<vtkFloatArray> Foam::vtk::fvMeshAdaptor::convertPointField
     {
         for (const label meshCelli : addPointCellLabels)
         {
-            foamToVtkTuple(scratch, vfld[meshCelli]);
+            vtk::Tools::foamToVtkTuple(scratch, vfld[meshCelli]);
             data->SetTuple(pointi++, scratch);
         }
     }
@@ -319,7 +319,10 @@ vtkSmartPointer<vtkFloatArray> Foam::vtk::fvMeshAdaptor::convertPointField
     {
         for (const label meshCelli : addPointCellLabels)
         {
-            foamToVtkTuple(scratch, interpolatePointToCell(pfld, meshCelli));
+            vtk::Tools::foamToVtkTuple
+            (
+                scratch, interpolatePointToCell(pfld, meshCelli)
+            );
             data->SetTuple(pointi++, scratch);
         }
     }
@@ -362,7 +365,7 @@ Foam::vtk::fvMeshAdaptor::convertVolFieldToVTK
     vtkIdType celli = 0;
     for (const label meshCelli : cellMap)
     {
-        foamToVtkTuple(scratch, fld[meshCelli]);
+        vtk::Tools::foamToVtkTuple(scratch, fld[meshCelli]);
         data->SetTuple(celli++, scratch);
     }
 

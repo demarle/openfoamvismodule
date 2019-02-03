@@ -3,7 +3,9 @@
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
     \\  /    A nd           | Copyright (C) 2018 OpenCFD Ltd.
-     \\/     M anipulation  | Copyright (C) 2018 CINECA
+     \\/     M anipulation  |
+-------------------------------------------------------------------------------
+                            | Copyright (C) 2018 CINECA
 -------------------------------------------------------------------------------
 License
     This file is part of OpenFOAM.
@@ -149,7 +151,7 @@ bool Foam::functionObjects::catalystFunctionObject::read(const dictionary& dict)
 {
     functionObject::read(dict);
 
-    const dictionary* inputDictPtr = dict.subDictPtr("inputs");
+    const dictionary* inputDictPtr = dict.findDict("inputs");
 
     if (!inputDictPtr || inputDictPtr->empty())
     {

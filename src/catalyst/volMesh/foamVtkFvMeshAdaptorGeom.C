@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2017-2018 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2017-2019 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,10 +27,10 @@ License
 #include "cellCellStencilObject.H"
 
 // VTK includes
-#include <vtkMultiBlockDataSet.h>
-#include <vtkPolyData.h>
-#include <vtkUnstructuredGrid.h>
-#include <vtkSmartPointer.h>
+#include "vtkMultiBlockDataSet.h"
+#include "vtkPolyData.h"
+#include "vtkUnstructuredGrid.h"
+#include "vtkSmartPointer.h"
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
@@ -155,13 +155,13 @@ void Foam::vtk::fvMeshAdaptor::applyGhostingInternal(const labelUList& types)
     const auto& longName = internalName();
 
     auto iter = cachedVtu_.find(longName);
-    if (!iter.found() || !iter.object().dataset)
+    if (!iter.found() || !iter.val().dataset)
     {
         // Should not happen, but for safety require a vtk geometry
         Pout<<"Cache miss for VTU " << longName << endl;
         return;
     }
-    foamVtuData& vtuData = iter.object();
+    foamVtuData& vtuData = iter.val();
     auto dataset = vtuData.dataset;
 
     const labelUList& cellMap = vtuData.cellMap();
@@ -231,14 +231,14 @@ void Foam::vtk::fvMeshAdaptor::applyGhostingBoundary(const labelUList& types)
         const word& longName = pp.name();
 
         auto iter = cachedVtp_.find(longName);
-        if (!iter.found() || !iter.object().dataset)
+        if (!iter.found() || !iter.val().dataset)
         {
             // Should not happen, but for safety require a vtk geometry
             Pout<<"Cache miss for VTP patch " << longName << endl;
             continue;
         }
 
-        foamVtpData& vtpData = iter.object();
+        foamVtpData& vtpData = iter.val();
         auto dataset = vtpData.dataset;
 
         auto vtkgcell = dataset->GetCellGhostArray();

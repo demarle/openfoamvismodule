@@ -3,7 +3,7 @@
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
     \\  /    A nd           | Copyright (C) 2011-2016 OpenFOAM Foundation
-     \\/     M anipulation  | Copyright (C) 2017 OpenCFD Ltd.
+     \\/     M anipulation  | Copyright (C) 2017-2019 OpenCFD Ltd.
 -------------------------------------------------------------------------------
 License
     This file is part of OpenFOAM.
@@ -71,8 +71,8 @@ void Foam::vtkPVFoam::convertVolFields()
         Info<< "<beg> " << FUNCTION_NAME << nl;
         forAllConstIters(objects, iter)
         {
-            Info<< "  " << iter()->name()
-                << " == " << iter()->objectPath() << nl;
+            Info<< "  " << (*iter)->name()
+                << " == " << (*iter)->objectPath() << nl;
         }
         printMemory();
     }
@@ -128,10 +128,7 @@ void Foam::vtkPVFoam::convertPointFields()
 
     if (selectedFields.empty())
     {
-        if (debug)
-        {
-            Info<< "no point fields selected" << nl;
-        }
+        DebugInfo << "no point fields selected" << nl;
         return;
     }
 
@@ -150,8 +147,8 @@ void Foam::vtkPVFoam::convertPointFields()
         Info<< "<beg> convert volume -> point fields" << nl;
         forAllConstIters(objects, iter)
         {
-            Info<< "  " << iter()->name()
-                << " == " << iter()->objectPath() << nl;
+            Info<< "  " << (*iter)->name()
+                << " == " << (*iter)->objectPath() << nl;
         }
         printMemory();
     }
@@ -206,8 +203,8 @@ void Foam::vtkPVFoam::convertAreaFields()
         Info<< "<beg> " << FUNCTION_NAME << nl;
         forAllConstIters(objects, iter)
         {
-            Info<< "  " << iter()->name()
-                << " == " << iter()->objectPath() << nl;
+            Info<< "  " << (*iter)->name()
+                << " == " << (*iter)->objectPath() << nl;
         }
         printMemory();
     }
@@ -283,8 +280,8 @@ void Foam::vtkPVFoam::convertLagrangianFields()
             Info<< "converting OpenFOAM lagrangian fields" << nl;
             forAllConstIters(objects, iter)
             {
-                Info<< "  " << iter()->name()
-                    << " == " << iter()->objectPath() << nl;
+                Info<< "  " << (*iter)->name()
+                    << " == " << (*iter)->objectPath() << nl;
             }
         }
 

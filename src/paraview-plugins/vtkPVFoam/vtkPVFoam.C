@@ -249,13 +249,11 @@ int Foam::vtkPVFoam::setTime(const std::vector<double>& requestTimes)
         updateInfo();
     }
 
-    if (debug)
-    {
-        Info<< "<end> setTime() - selectedTime="
-            << Times[nearestIndex].name() << " index=" << timeIndex_
-            << "/" << Times.size()
-            << " meshUpdateState=" << updateStateName(meshState_) << nl;
-    }
+    DebugInfo
+        << "<end> setTime() - selectedTime="
+        << Times[nearestIndex].name() << " index=" << timeIndex_
+        << "/" << Times.size()
+        << " meshUpdateState=" << updateStateName(meshState_) << nl;
 
     return nearestIndex;
 }
@@ -374,13 +372,11 @@ Foam::vtkPVFoam::vtkPVFoam
         }
     }
 
-    if (debug)
-    {
-        Info<< "fullCasePath=" << fullCasePath << nl
-            << "FOAM_CASE=" << getEnv("FOAM_CASE") << nl
-            << "FOAM_CASENAME=" << getEnv("FOAM_CASENAME") << nl
-            << "region=" << meshRegion_ << nl;
-    }
+    DebugInfo
+        << "fullCasePath=" << fullCasePath << nl
+        << "FOAM_CASE=" << getEnv("FOAM_CASE") << nl
+        << "FOAM_CASENAME=" << getEnv("FOAM_CASENAME") << nl
+        << "region=" << meshRegion_ << nl;
 
     // Create time object
     dbPtr_.reset
@@ -403,10 +399,7 @@ Foam::vtkPVFoam::vtkPVFoam
 
 Foam::vtkPVFoam::~vtkPVFoam()
 {
-    if (debug)
-    {
-        Info<< "~vtkPVFoam" << nl;
-    }
+    DebugInfo << "~vtkPVFoam" << nl;
 
     delete volMeshPtr_;
     delete areaMeshPtr_;
@@ -417,13 +410,11 @@ Foam::vtkPVFoam::~vtkPVFoam()
 
 void Foam::vtkPVFoam::updateInfo()
 {
-    if (debug)
-    {
-        Info<< "<beg> updateInfo"
-            << " [volMeshPtr=" << (volMeshPtr_ ? "set" : "nullptr")
-            << "] timeIndex="
-            << timeIndex_ << nl;
-    }
+    DebugInfo
+        << "<beg> updateInfo"
+        << " [volMeshPtr=" << (volMeshPtr_ ? "set" : "nullptr")
+        << "] timeIndex="
+        << timeIndex_ << nl;
 
     resetCounters();
 
@@ -473,10 +464,7 @@ void Foam::vtkPVFoam::updateInfo()
     // Lagrangian fields - includes save/restore of selected
     updateInfoLagrangianFields(reader_->GetLagrangianFieldSelection());
 
-    if (debug)
-    {
-        Info<< "<end> updateInfo" << nl;
-    }
+    DebugInfo << "<end> updateInfo" << nl;
 }
 
 
@@ -582,11 +570,9 @@ void Foam::vtkPVFoam::Update
         // Check to see if the OpenFOAM mesh has been created
         if (!volMeshPtr_)
         {
-            if (debug)
-            {
-                Info<< "Creating OpenFOAM mesh for region " << meshRegion_
-                    << " at time=" << dbPtr_().timeName() << nl;
-            }
+            DebugInfo
+                << "Creating OpenFOAM mesh for region " << meshRegion_
+                << " at time=" << dbPtr_().timeName() << nl;
 
             volMeshPtr_ = new fvMesh
             (
@@ -603,10 +589,7 @@ void Foam::vtkPVFoam::Update
         }
         else
         {
-            if (debug)
-            {
-                Info<< "Using existing OpenFOAM mesh" << nl;
-            }
+            DebugInfo << "Using existing OpenFOAM mesh" << nl;
         }
 
         if (rangeArea_.intersects(selectedPartIds_))
@@ -682,10 +665,7 @@ void Foam::vtkPVFoam::Update
         rangeClouds_
     );
 
-    if (debug)
-    {
-        Info<< "done reader part" << nl << nl;
-    }
+    DebugInfo << "done reader part" << nl << nl;
     reader_->UpdateProgress(0.95);
 
     meshState_ = polyMesh::UNCHANGED;
@@ -900,19 +880,14 @@ void Foam::vtkPVFoam::renderPatchNames
             displayZoneI += min(MAXPATCHZONES, nZones[patchi]);
         }
 
-        if (debug)
-        {
-            Info<< "displayed zone centres = " << displayZoneI << nl
-                << "zones per patch = " << nZones << nl;
-        }
+        DebugInfo
+            << "displayed zone centres = " << displayZoneI << nl
+            << "zones per patch = " << nZones << nl;
 
         // Set the size of the patch labels to max number of zones
         patchTextActors_.setSize(displayZoneI);
 
-        if (debug)
-        {
-            Info<< "constructing patch labels" << nl;
-        }
+        DebugInfo << "constructing patch labels" << nl;
 
         // Actor index
         displayZoneI = 0;
@@ -932,12 +907,10 @@ void Foam::vtkPVFoam::renderPatchNames
             label globalZoneI = 0;
             for (label i = 0; i < nDisplayZones; ++i, globalZoneI += increment)
             {
-                if (debug)
-                {
-                    Info<< "patch name = " << pp.name() << nl
-                        << "anchor = " << zoneCentre[patchi][globalZoneI] << nl
-                        << "globalZoneI = " << globalZoneI << nl;
-                }
+                DebugInfo
+                    << "patch name = " << pp.name() << nl
+                    << "anchor = " << zoneCentre[patchi][globalZoneI] << nl
+                    << "globalZoneI = " << globalZoneI << nl;
 
                 // Into a list for later removal
                 patchTextActors_[displayZoneI++] = createTextActor

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2018 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2018-2019 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -75,8 +75,8 @@ void Foam::vtk::faMeshAdaptor::updateContent(const wordRes& selectFields)
         // Eliminate cached values that would be unreliable
         forAllIters(cachedVtp_, iter)
         {
-            iter.object().clearGeom();
-            iter.object().clear();
+            iter.val().clearGeom();
+            iter.val().clear();
         }
     }
 
@@ -111,9 +111,9 @@ Foam::vtk::faMeshAdaptor::output(const wordRes& select)
     {
         const auto& longName = internalName;
         auto iter = cachedVtp_.find(longName);
-        if (iter.found() && iter.object().dataset)
+        if (iter.found() && iter.val().dataset)
         {
-            vtkmesh = iter.object().dataset;
+            vtkmesh = iter.val().dataset;
         }
     }
 

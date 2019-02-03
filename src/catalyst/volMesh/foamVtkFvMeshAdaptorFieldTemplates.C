@@ -75,14 +75,14 @@ void Foam::vtk::fvMeshAdaptor::convertVolField
         const word& longName = pp.name();
 
         auto iter = cachedVtp_.find(longName);
-        if (!iter.found() || !iter.object().dataset)
+        if (!iter.found() || !iter.val().dataset)
         {
             // Should not happen, but for safety require a vtk geometry
             Pout<<"Cache miss for VTP patch " << longName << endl;
             continue;
         }
 
-        foamVtpData& vtpData = iter.object();
+        foamVtpData& vtpData = iter.val();
         auto dataset = vtpData.dataset;
 
         // This is slightly roundabout, but we deal with groups and with
@@ -207,39 +207,26 @@ void Foam::vtk::fvMeshAdaptor::convertVolFieldInternal
     const auto& longName = internalName();
 
     auto iter = cachedVtu_.find(longName);
-    if (!iter.found() || !iter.object().dataset)
+    if (!iter.found() || !iter.val().dataset)
     {
         // Should not happen, but for safety require a vtk geometry
         Pout<<"Cache miss for VTU " << longName << endl;
         return;
     }
-    foamVtuData& vtuData = iter.object();
+    foamVtuData& vtuData = iter.val();
     auto dataset = vtuData.dataset;
 
-    vtkSmartPointer<vtkFloatArray> cdata = convertVolFieldToVTK
+    dataset->GetCellData()->AddArray
     (
-        fld,
-        vtuData
+        vtuData.convertField(fld)
     );
-    dataset->GetCellData()->AddArray(cdata);
-
-    // double cbound[2];
-    // cdata->GetRange(cbound);
-    // Info<< "range cdata: " << cbound[0] << " - " << cbound[1] << nl;
 
     if (ptfPtr.valid())
     {
-        vtkSmartPointer<vtkFloatArray> pdata = convertPointField
+        dataset->GetPointData()->AddArray
         (
-            ptfPtr(),
-            fld,
-            vtuData
+            convertPointField(ptfPtr(), fld, vtuData)
         );
-        dataset->GetPointData()->AddArray(pdata);
-
-        // double bound[2];
-        // pdata->GetRange(bound);
-        // Info<< "range pdata: " << bound[0] << " - " << bound[1] << nl;
     }
 }
 
@@ -330,49 +317,6 @@ vtkSmartPointer<vtkFloatArray> Foam::vtk::fvMeshAdaptor::convertPointField
     return data;
 }
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-//
-// low-level conversions
-//
-
-template<class Type>
-vtkSmartPointer<vtkFloatArray>
-Foam::vtk::fvMeshAdaptor::convertVolFieldToVTK
-(
-    const GeometricField<Type, fvPatchField, volMesh>& fld,
-    const foamVtuData& vtuData
-) const
-{
-    const int nComp(pTraits<Type>::nComponents);
-    const labelUList& cellMap = vtuData.cellMap();
-
-    auto data = vtkSmartPointer<vtkFloatArray>::New();
-    data->SetName(fld.name().c_str());
-    data->SetNumberOfComponents(nComp);
-    data->SetNumberOfTuples(cellMap.size());
-
-    DebugInfo
-        << "convert volField: " << fld.name()
-        << " size=" << cellMap.size()
-        << " (" << fld.size() << " + "
-        << (cellMap.size() - fld.size())
-        << ") nComp=" << nComp << endl;
-
-
-    float scratch[pTraits<Type>::nComponents];
-
-    vtkIdType celli = 0;
-    for (const label meshCelli : cellMap)
-    {
-        vtk::Tools::foamToVtkTuple(scratch, fld[meshCelli]);
-        data->SetTuple(celli++, scratch);
-    }
-
-    return data;
-}
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 #endif
 

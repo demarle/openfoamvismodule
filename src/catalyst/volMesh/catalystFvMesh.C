@@ -2,8 +2,10 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2018 OpenCFD Ltd.
-     \\/     M anipulation  | Copyright (C) 2018 CINECA
+    \\  /    A nd           | Copyright (C) 2018-2019 OpenCFD Ltd.
+     \\/     M anipulation  |
+-------------------------------------------------------------------------------
+                            | Copyright (C) 2018 CINECA
 -------------------------------------------------------------------------------
 License
     This file is part of OpenFOAM.
@@ -67,7 +69,7 @@ void Foam::catalyst::fvMeshInput::update()
             auto backend =
                 autoPtr<Foam::vtk::fvMeshAdaptor>::New
                 (
-                    *(iter.object()),
+                    *(iter.val()),
                     channelOpt_,
                     selectPatches_
                 );
@@ -203,7 +205,7 @@ Foam::label Foam::catalyst::fvMeshInput::addChannels(dataQuery& dataq)
     wordHashSet allFields;
     forAllConstIters(backends_, iter)
     {
-        allFields += iter.object()->knownFields(selectFields_);
+        allFields += iter.val()->knownFields(selectFields_);
     }
 
     dataq.set(name(), allFields);

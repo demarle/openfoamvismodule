@@ -68,7 +68,6 @@ file(GLOB SOURCE_FILES
     volMesh/catalystFvMesh.C
     volMesh/foamVtkFvMeshAdaptor.C
     volMesh/foamVtkFvMeshAdaptorGeom.C
-    volMesh/foamVtkFvMeshAdaptorGeomVtu.C
     volMesh/foamVtkFvMeshAdaptorFields.C
 )
 

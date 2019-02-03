@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2017-2018 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2017-2019 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -251,13 +251,13 @@ void Foam::vtk::fvMeshAdaptor::updateContent(const wordRes& selectFields)
         // Eliminate cached values that would be unreliable
         forAllIters(cachedVtp_, iter)
         {
-            iter.object().clearGeom();
-            iter.object().clear();
+            iter.val().clearGeom();
+            iter.val().clear();
         }
         forAllIters(cachedVtu_, iter)
         {
-            iter.object().clearGeom();
-            iter.object().clear();
+            iter.val().clearGeom();
+            iter.val().clear();
         }
 
         definePatchIds();
@@ -267,8 +267,8 @@ void Foam::vtk::fvMeshAdaptor::updateContent(const wordRes& selectFields)
         // poly-decompose changed - dispose of cached values
         forAllIters(cachedVtu_, iter)
         {
-            iter.object().clearGeom();
-            iter.object().clear();
+            iter.val().clearGeom();
+            iter.val().clear();
         }
     }
 
@@ -310,13 +310,13 @@ Foam::vtk::fvMeshAdaptor::output(const wordRes& select)
         {
             const auto& longName = internalName();
             auto iter = cachedVtu_.find(longName);
-            if (!iter.found() || !iter.object().dataset)
+            if (!iter.found() || !iter.val().dataset)
             {
                 Pout<<"Cache miss for VTU " << longName << endl;
                 break; // Should never happen
             }
 
-            foamVtuData& vtuData = iter.object();
+            foamVtuData& vtuData = iter.val();
 
             auto pieces = vtkSmartPointer<vtkMultiPieceDataSet>::New();
 
@@ -350,13 +350,13 @@ Foam::vtk::fvMeshAdaptor::output(const wordRes& select)
             const word& longName = pp.name();
 
             auto iter = cachedVtp_.find(longName);
-            if (!iter.found() || !iter.object().dataset)
+            if (!iter.found() || !iter.val().dataset)
             {
                 Pout<<"Cache miss for VTP patch " << longName << endl;
                 break; // Should never happen
             }
 
-            foamVtpData& vtpData = iter.object();
+            foamVtpData& vtpData = iter.val();
 
             auto pieces = vtkSmartPointer<vtkMultiPieceDataSet>::New();
 

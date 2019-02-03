@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2018 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2018-2019 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -66,12 +66,12 @@ void Foam::vtk::faMeshAdaptor::convertAreaField
     const auto& longName = internalName;
 
     auto iter = cachedVtp_.find(longName);
-    if (!iter.found() || !iter.object().dataset)
+    if (!iter.found() || !iter.val().dataset)
     {
         // Should not happen, but for safety require a vtk geometry
         return;
     }
-    foamVtpData& vtpData = iter.object();
+    foamVtpData& vtpData = iter.val();
     auto dataset = vtpData.dataset;
 
     vtkSmartPointer<vtkFloatArray> cdata = convertAreaFieldToVTK

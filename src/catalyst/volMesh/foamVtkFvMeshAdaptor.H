@@ -58,14 +58,7 @@ SourceFiles
 #include "PrimitivePatchInterpolation.H"
 #include "volPointInterpolation.H"
 
-#include "foamVtkTools.H"
-#include "foamVtkMeshMaps.H"
-
-#include <vtkSmartPointer.h>
-#include <vtkPoints.h>
-#include <vtkPolyData.h>
-#include <vtkUnstructuredGrid.h>
-#include <vtkMultiBlockDataSet.h>
+#include "foamVtkVtuAdaptor.H"
 
 // * * * * * * * * * * * * * Forward Declarations  * * * * * * * * * * * * * //
 
@@ -136,30 +129,8 @@ private:
         //- Bookkeeping for vtkUnstructuredGrid
         struct foamVtuData
         :
-            public vtk::Caching<vtkUnstructuredGrid>,
-            public foamVtkMeshMaps
-        {
-            //- The vtk points for the mesh (and decomposition)
-            vtkSmartPointer<vtkPoints> points
-            (
-                const fvMesh& mesh
-            ) const;
-
-            //- The vtk points for the mesh (and decomposition)
-            //- using the provided pointMap
-            vtkSmartPointer<vtkPoints> points
-            (
-                const fvMesh& mesh,
-                const labelUList& pointMap
-            ) const;
-
-            //- Internal mesh as vtkUnstructuredGrid
-            vtkSmartPointer<vtkUnstructuredGrid> internal
-            (
-                const fvMesh& mesh,
-                const bool decompPoly
-            );
-        };
+            public vtk::vtuAdaptor
+        {};
 
 
     // Private Data
@@ -224,15 +195,6 @@ private:
 
         //- Convert specified volume fields
         void convertVolFields(const wordRes& selectFields);
-
-        //- Volume field
-        template<class Type>
-        vtkSmartPointer<vtkFloatArray> convertVolFieldToVTK
-        (
-            const GeometricField<Type, fvPatchField, volMesh>& fld,
-            const foamVtuData& vtuData
-        ) const;
-
 
         //- Volume field - all types
         template<class Type>

@@ -71,10 +71,7 @@ vtkSmartPointer<vtkPolyData> Foam::vtkPVFoam::lagrangianVTKMesh
     {
         Cloud<passiveParticle> parcels(mesh, cloudName, false);
 
-        if (debug)
-        {
-            Info<< "cloud with " << parcels.size() << " parcels" << nl;
-        }
+        DebugInfo << "cloud with " << parcels.size() << " parcels" << nl;
 
         auto vtkpoints = vtkSmartPointer<vtkPoints>::New();
         vtkpoints->SetNumberOfPoints(parcels.size());

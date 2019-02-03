@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2018 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2018-2019 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -44,33 +44,6 @@ namespace vtk
     defineTypeNameAndDebug(cloudAdaptor, 0);
 }
 } // End namespace Foam
-
-
-// * * * * * * * * * * * * * Static Member Functions * * * * * * * * * * * * //
-
-vtkSmartPointer<vtkPolyData>
-Foam::vtk::cloudAdaptor::startLagrangian
-(
-    const pointField& points
-)
-{
-    auto vtkmesh = vtkSmartPointer<vtkPolyData>::New();
-    auto vtkpoints = vtkSmartPointer<vtkPoints>::New();
-
-    vtkpoints->SetNumberOfPoints(points.size());
-
-    vtkIdType particleId = 0;
-    for (const vector& p : points)
-    {
-        vtkpoints->SetPoint(particleId, p.v_);
-        ++particleId;
-    }
-
-    vtkmesh->SetPoints(vtkpoints);
-    vtkmesh->SetVerts(vtk::Tools::identityVertices(points.size()));
-
-    return vtkmesh;
-}
 
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
@@ -124,7 +97,7 @@ Foam::vtk::cloudAdaptor::getCloudImpl
     vtkSmartPointer<vtkPolyData> vtkmesh;
     if (pointsPtr)
     {
-        vtkmesh = startLagrangian(*pointsPtr);
+        vtkmesh = vtk::Tools::Vertices(*pointsPtr);
 
         // Prevent any possible conversion of positions as a field
         obrTmp.filterKeys

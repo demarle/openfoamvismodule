@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2018 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2018-2019 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -67,7 +67,7 @@ void Foam::catalyst::faMeshInput::update()
         if (!backends_.found(areaName))
         {
             auto backend =
-                autoPtr<Foam::vtk::faMeshAdaptor>::New(*(iter.object()));
+                autoPtr<Foam::vtk::faMeshAdaptor>::New(*(iter.val()));
 
             // Apply any configuration options
             // ...
@@ -187,7 +187,7 @@ Foam::label Foam::catalyst::faMeshInput::addChannels(dataQuery& dataq)
     wordHashSet allFields;
     forAllConstIters(backends_, iter)
     {
-        allFields += iter.object()->knownFields(selectFields_);
+        allFields += iter.val()->knownFields(selectFields_);
     }
 
     dataq.set(name(), allFields);

@@ -53,7 +53,7 @@ Foam::wordHashSet Foam::vtk::faMeshAdaptor::knownFields
 
         if (fieldTypes::area.found(clsName))
         {
-            allFields += iter.object();
+            allFields += iter.val();
         }
     }
 

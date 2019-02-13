@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2015-2019 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2019 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -22,27 +22,30 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::functionObjects::runTimePostPro::functionObjectLine
+    Foam::functionObjects::runTimePostPro::contourFilter
 
 Description
-    Visualisation of line data from function object output (file-based only).
+    Iso-surface contours of OpenFOAM volume fields.
 
     Dictionary controls
     \table
         Property    | Description                           | Required | Default
-        type        | The line type: functionObjectLine     | yes |
+        type        | The surface type: isoSurface          | yes |
+        field       | The field defining the surface        | yes |
+        colourField | The field to display on the surface   | yes |
+        values      | List of iso-values to define the surface(s) | yes |
     \endtable
 
 SourceFiles
-    functionObjectLine.C
+    contourFilter.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef functionObjects_runTimePostPro_functionObjectLine_H
-#define functionObjects_runTimePostPro_functionObjectLine_H
+#ifndef functionObjects_runTimePostPro_contourFilter_H
+#define functionObjects_runTimePostPro_contourFilter_H
 
-#include "pathline.H"
-#include "functionObjectBase.H"
+#include "volumeFilter.H"
+#include "fieldVisualisationBase.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -54,41 +57,44 @@ namespace runTimePostPro
 {
 
 /*---------------------------------------------------------------------------*\
-                     Class functionObjectLine Declaration
+                        Class contourFilter Declaration
 \*---------------------------------------------------------------------------*/
 
-class functionObjectLine
+class contourFilter
 :
-    public pathline,
-    public functionObjectBase
+    public volumeFilter,
+    public fieldVisualisationBase
 {
 protected:
 
     // Protected Data
 
-        //- Actor
-        vtkSmartPointer<vtkActor> actor_;
+        //- Name of field to colour by
+        word colourFieldName_;
+
+        //- The iso values
+        List<scalar> values_;
 
 
     // Protected Member Functions
 
         //- No copy construct
-        functionObjectLine(const functionObjectLine&) = delete;
+        contourFilter(const contourFilter&) = delete;
 
         //- No copy assignment
-        void operator=(const functionObjectLine&) = delete;
+        void operator=(const contourFilter&) = delete;
 
 
 public:
 
     //- Run-time type information
-    TypeNameNoDebug("functionObjectLine");
+    TypeNameNoDebug("isoSurface");
 
 
     // Constructors
 
         //- Construct from dictionary
-        functionObjectLine
+        contourFilter
         (
             const runTimePostProcessing& parent,
             const dictionary& dict,
@@ -97,22 +103,26 @@ public:
 
 
     //- Destructor
-    virtual ~functionObjectLine();
+    virtual ~contourFilter() = default;
 
 
     // Member Functions
 
-        //- Add tube(s) to scene
+        //- Add cutting planes to scene (using simulation source)
+        bool addGeometry
+        (
+            const scalar position,
+            vtkRenderer* renderer
+        );
+
+        //- Add cutting planes to scene (using simulation source)
         virtual void addGeometryToScene
         (
             const scalar position,
             vtkRenderer* renderer
         );
 
-        //- Update actors
-        virtual void updateActors(const scalar position);
-
-        //- Clear files used to create the object(s)
+        //- Add cutting planes to scene (using simulation source)
         virtual bool clear();
 };
 

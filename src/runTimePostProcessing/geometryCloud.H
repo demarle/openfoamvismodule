@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2015-2019 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2019 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -22,7 +22,7 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::functionObjects::runTimePostPro::functionObjectCloud
+    Foam::functionObjects::runTimePostPro::geometryCloud
 
 Description
     Visualisation of cloud data from function object output (file-based only).
@@ -30,23 +30,26 @@ Description
     Dictionary controls
     \table
         Property    | Description                           | Required | Default
-        type        | The point type: functionObjectCloud   | yes |
-        functionObject | The data source                    | yes |
+        type        | The point type: geometryCloud         | yes |
         cloud         | The cloud name                      | no  |
         field         | The field for glyphs scaling        | no  |
         colourField   | The field to display                | no  |
     \endtable
 
 SourceFiles
-    functionObjectCloud.C
+    geometryCloud.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef functionObjects_runTimePostPro_functionObjectCloud_H
-#define functionObjects_runTimePostPro_functionObjectCloud_H
+#ifndef functionObjects_runTimePostPro_geometryCloud_H
+#define functionObjects_runTimePostPro_geometryCloud_H
 
 #include "pointData.H"
 #include "functionObjectBase.H"
+#include "IOField.H"
+
+#include "vtkSmartPointer.h"
+#include "vtkMultiPieceDataSet.h"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -58,23 +61,20 @@ namespace runTimePostPro
 {
 
 /*---------------------------------------------------------------------------*\
-                     Class functionObjectCloud Declaration
+                     Class geometryCloud Declaration
 \*---------------------------------------------------------------------------*/
 
-class functionObjectCloud
+class geometryCloud
 :
     public pointData,
-    public functionObjectBase
+    public fieldVisualisationBase
 {
 protected:
 
     // Protected Data
 
-        //- Name of functionObjectCloud
+        //- Name of geometryCloud
         word cloudName_;
-
-        //- The input filename used
-        fileName inputFileName_;
 
         //- Name of field to colour by
         word colourFieldName_;
@@ -85,23 +85,68 @@ protected:
 
     // Protected Member Functions
 
+        //- Gather and convert cloud positions with vtkPolyData for the leaves.
+        //  If VTK is also running in parallel, each cloud is left
+        //  as a processor-local piece. Otherwise all processor-local
+        //  parts are gathered onto the master in their correponding
+        //  slots.
+        vtkSmartPointer<vtkMultiPieceDataSet>
+        gatherCloud(const objectRegistry& obrTmp) const;
+
+
+        //- Add field
+        template<class Type>
+        bool addField
+        (
+            vtkDataSet* piece,
+            const Field<Type>& fld,
+            const word& fieldName
+        ) const;
+
+        //- Add field
+        template<class Type>
+        bool addCloudField
+        (
+            vtkMultiPieceDataSet* multiPiece,
+            const IOField<Type>* fldptr,
+            const word& fieldName
+        ) const;
+
+        //- Add field
+        template<class Type>
+        bool addCloudField
+        (
+            vtkMultiPieceDataSet* multiPiece,
+            const regIOobject* fieldPtr,
+            const word& fieldName
+        ) const;
+
+        //- Add field
+        bool addCloudField
+        (
+            vtkMultiPieceDataSet* multiPiece,
+            const objectRegistry& obrTmp,
+            const word& fieldName
+        ) const;
+
+
         //- No copy construct
-        functionObjectCloud(const functionObjectCloud&) = delete;
+        geometryCloud(const geometryCloud&) = delete;
 
         //- No copy assignment
-        void operator=(const functionObjectCloud&) = delete;
+        void operator=(const geometryCloud&) = delete;
 
 
 public:
 
     //- Run-time type information
-    TypeNameNoDebug("functionObjectCloud");
+    TypeNameNoDebug("geometryCloud");
 
 
     // Constructors
 
         //- Construct from dictionary
-        functionObjectCloud
+        geometryCloud
         (
             const runTimePostProcessing& parent,
             const dictionary& dict,
@@ -110,13 +155,13 @@ public:
 
 
     //- Destructor
-    virtual ~functionObjectCloud();
+    virtual ~geometryCloud();
 
 
     // Member Functions
 
-        //- Add cloud to scene (using file source)
-        bool addGeometryFromFile
+        //- Add cloud to scene (from simulation)
+        bool addGeometry
         (
             const scalar position,
             vtkRenderer* renderer
@@ -132,7 +177,7 @@ public:
         //- Update actors
         virtual void updateActors(const scalar position);
 
-        //- Clear files used to create the object(s)
+        //- No-op
         virtual bool clear();
 };
 
@@ -142,6 +187,12 @@ public:
 } // End namespace runTimePostPro
 } // End namespace functionObjects
 } // End namespace Foam
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+#ifdef NoRepository
+    #include "geometryCloudTemplates.C"
+#endif
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

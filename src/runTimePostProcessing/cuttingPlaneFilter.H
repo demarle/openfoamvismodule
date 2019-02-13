@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2015-2019 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2019 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -22,27 +22,50 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::functionObjects::runTimePostPro::functionObjectLine
+    Foam::functionObjects::runTimePostPro::cuttingPlaneFilter
 
 Description
-    Visualisation of line data from function object output (file-based only).
+    Cutting planes of OpenFOAM volume fields.
+
+    Example of text object specification:
+    \verbatim
+    planes
+    {
+        type            plane;
+        planeType       pointAndNormal;
+
+        pointAndNormalDict
+        {
+                point   (0 0 0);
+                normal  (1 0 0);
+        }
+
+        offsets         (0 10 20);
+
+        field    T;
+    }
+    \endverbatim
 
     Dictionary controls
     \table
         Property    | Description                           | Required | Default
-        type        | The line type: functionObjectLine     | yes |
+        type        | The surface type: plane               | yes |
+        planeType   | Selector for plane description        | yes |
+        offsets     | Offets of the origin in the normal direction | no | (0)
+        field       | The field to display                  | yes |
     \endtable
 
 SourceFiles
-    functionObjectLine.C
+    cuttingPlaneFilter.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef functionObjects_runTimePostPro_functionObjectLine_H
-#define functionObjects_runTimePostPro_functionObjectLine_H
+#ifndef functionObjects_runTimePostPro_cuttingPlaneFilter_H
+#define functionObjects_runTimePostPro_cuttingPlaneFilter_H
 
-#include "pathline.H"
-#include "functionObjectBase.H"
+#include "plane.H"
+#include "volumeFilter.H"
+#include "fieldVisualisationBase.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -54,41 +77,44 @@ namespace runTimePostPro
 {
 
 /*---------------------------------------------------------------------------*\
-                     Class functionObjectLine Declaration
+                    Class cuttingPlaneFilter Declaration
 \*---------------------------------------------------------------------------*/
 
-class functionObjectLine
+class cuttingPlaneFilter
 :
-    public pathline,
-    public functionObjectBase
+    public volumeFilter,
+    public fieldVisualisationBase
 {
 protected:
 
     // Protected Data
 
-        //- Actor
-        vtkSmartPointer<vtkActor> actor_;
+        //- The definition of the plane
+        plane plane_;
+
+        //- The offsets to the plane - defaults to (0).
+        List<scalar> values_;
 
 
     // Protected Member Functions
 
         //- No copy construct
-        functionObjectLine(const functionObjectLine&) = delete;
+        cuttingPlaneFilter(const cuttingPlaneFilter&) = delete;
 
         //- No copy assignment
-        void operator=(const functionObjectLine&) = delete;
+        void operator=(const cuttingPlaneFilter&) = delete;
 
 
 public:
 
     //- Run-time type information
-    TypeNameNoDebug("functionObjectLine");
+    TypeNameNoDebug("plane");
 
 
     // Constructors
 
         //- Construct from dictionary
-        functionObjectLine
+        cuttingPlaneFilter
         (
             const runTimePostProcessing& parent,
             const dictionary& dict,
@@ -97,22 +123,26 @@ public:
 
 
     //- Destructor
-    virtual ~functionObjectLine();
+    virtual ~cuttingPlaneFilter() = default;
 
 
     // Member Functions
 
-        //- Add tube(s) to scene
+        //- Add cutting planes to scene (using simulation source)
+        bool addGeometry
+        (
+            const scalar position,
+            vtkRenderer* renderer
+        );
+
+        //- Add cutting planes to scene (using simulation source)
         virtual void addGeometryToScene
         (
             const scalar position,
             vtkRenderer* renderer
         );
 
-        //- Update actors
-        virtual void updateActors(const scalar position);
-
-        //- Clear files used to create the object(s)
+        //- Cleanup files etc.
         virtual bool clear();
 };
 

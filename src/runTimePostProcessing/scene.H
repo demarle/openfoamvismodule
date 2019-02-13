@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2015-2018 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2015-2019 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -45,6 +45,10 @@ Usage
         clipBox     (-0.0206 -0.0254 -0.0005) (0.29 0.0254 0.0005);
         viewAngle   20;
         zoom        1.1;
+    }
+
+    colours
+    {
     }
     \endverbatim
 

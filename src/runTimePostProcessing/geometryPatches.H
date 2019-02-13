@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2015-2019 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2019 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -22,27 +22,30 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::functionObjects::runTimePostPro::functionObjectLine
+    Foam::functionObjects::runTimePostPro::geometryPatches
 
 Description
-    Visualisation of line data from function object output (file-based only).
+    Visualisation of OpenFOAM patches and fields.
 
-    Dictionary controls
+    \heading Basic Usage
     \table
         Property    | Description                           | Required | Default
-        type        | The line type: functionObjectLine     | yes |
+        type        | The surface type: patches             | yes |
+        patches     | Patches to display (wordRe list)      | yes |
     \endtable
 
 SourceFiles
-    functionObjectLine.C
+    geometryPatches.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef functionObjects_runTimePostPro_functionObjectLine_H
-#define functionObjects_runTimePostPro_functionObjectLine_H
+#ifndef functionObjects_runTimePostPro_geometryPatches_H
+#define functionObjects_runTimePostPro_geometryPatches_H
 
-#include "pathline.H"
-#include "functionObjectBase.H"
+#include "surface.H"
+#include "geometrySurface.H"
+#include "fieldVisualisationBase.H"
+#include "volFieldsFwd.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -54,41 +57,73 @@ namespace runTimePostPro
 {
 
 /*---------------------------------------------------------------------------*\
-                     Class functionObjectLine Declaration
+                       Class geometryPatches Declaration
 \*---------------------------------------------------------------------------*/
 
-class functionObjectLine
+class geometryPatches
 :
-    public pathline,
-    public functionObjectBase
+    public geometrySurface,
+    public fieldVisualisationBase
 {
 protected:
 
     // Protected Data
 
-        //- Actor
-        vtkSmartPointer<vtkActor> actor_;
+        //- Requested names of patches to process
+        wordRes selectPatches_;
+
+        //- Use cell value on patches instead of patch value itself
+        bool nearCellValue_;
 
 
     // Protected Member Functions
 
+        //- Gather and convert patches to multi-piece dataset with
+        //- vtkPolyData for each patch/processor.
+        //  For serial, the pieces are gathered to the master.
+        vtkSmartPointer<vtkMultiPieceDataSet>
+        gatherPatchPieces(const labelListList& patchIds) const;
+
+        //- Gather and convert patch face centres to multi-piece dataset with
+        //- vtkPolyData for each patch/processor.
+        //  For serial, the pieces are gathered to the master.
+        vtkSmartPointer<vtkMultiPieceDataSet>
+        gatherPatchFaceCentres(const labelListList& patchIds) const;
+
+
+    // Adding Fields - multi-piece
+
+        //- Add patch values.
+        //  For nCells == nPoints (eg, only has face centres) add as PointData.
+        //  \return 0 on failure to map and nCmpt (eg, 1=scalar, 3=vector)
+        //  on success.
+        template<class Type>
+        int addPatchField
+        (
+            vtkMultiPieceDataSet* multiPiece,
+            const labelListList& patchIds,
+            const GeometricField<Type, fvPatchField, volMesh>* fldptr,
+            const word& fieldName
+        ) const;
+
+
         //- No copy construct
-        functionObjectLine(const functionObjectLine&) = delete;
+        geometryPatches(const geometryPatches&) = delete;
 
         //- No copy assignment
-        void operator=(const functionObjectLine&) = delete;
+        void operator=(const geometryPatches&) = delete;
 
 
 public:
 
     //- Run-time type information
-    TypeNameNoDebug("functionObjectLine");
+    TypeNameNoDebug("patches");
 
 
     // Constructors
 
         //- Construct from dictionary
-        functionObjectLine
+        geometryPatches
         (
             const runTimePostProcessing& parent,
             const dictionary& dict,
@@ -97,12 +132,12 @@ public:
 
 
     //- Destructor
-    virtual ~functionObjectLine();
+    virtual ~geometryPatches() = default;
 
 
     // Member Functions
 
-        //- Add tube(s) to scene
+        //- Add geometry surface(s) to scene
         virtual void addGeometryToScene
         (
             const scalar position,
@@ -122,6 +157,12 @@ public:
 } // End namespace runTimePostPro
 } // End namespace functionObjects
 } // End namespace Foam
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+#ifdef NoRepository
+    #include "geometryPatchesTemplates.C"
+#endif
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

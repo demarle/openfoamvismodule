@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2015-2019 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2019 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -24,22 +24,22 @@ License
 \*---------------------------------------------------------------------------*/
 
 // OpenFOAM includes
-#include "functionObjectCloud.H"
+#include "geometryCloud.H"
+#include "cloud.H"
 #include "fvMesh.H"
 #include "runTimePostProcessing.H"
 #include "addToRunTimeSelectionTable.H"
 
 // VTK includes
 #include "vtkActor.h"
+#include "vtkCompositeDataGeometryFilter.h"
+#include "vtkCompositeDataSet.h"
+#include "vtkCompositePolyDataMapper.h"
 #include "vtkPolyData.h"
 #include "vtkPolyDataMapper.h"
 #include "vtkProperty.h"
 #include "vtkRenderer.h"
 #include "vtkSmartPointer.h"
-
-// VTK Readers
-#include "vtkPolyDataReader.h"
-#include "vtkXMLPolyDataReader.h"
 
 // * * * * * * * * * * * * * Static Member Functions * * * * * * * * * * * * //
 
@@ -49,45 +49,57 @@ namespace functionObjects
 {
 namespace runTimePostPro
 {
-    defineTypeName(functionObjectCloud);
-    addToRunTimeSelectionTable(pointData, functionObjectCloud, dictionary);
+    defineTypeName(geometryCloud);
+    addToRunTimeSelectionTable(pointData, geometryCloud, dictionary);
 }
 }
 }
 
 
-// * * * * * * * * * * * * * * * Local Functions * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * Protected Member Functions  * * * * * * * * * * * //
 
-namespace
+bool Foam::functionObjects::runTimePostPro::geometryCloud::addCloudField
+(
+    vtkMultiPieceDataSet* multiPiece,
+    const objectRegistry& obrTmp,
+    const word& fieldName
+) const
 {
+    const regIOobject* ioptr = obrTmp.cfindObject<regIOobject>(fieldName);
 
-static vtkSmartPointer<vtkPolyData> getPolyDataFile(const Foam::fileName& fName)
-{
-    // Very simple - we only support vtp files, which are expected to have
-    // the scaling and colouring fields.
-
-    vtkSmartPointer<vtkPolyData> dataset;
-
-    if (fName.ext() == "vtp")
-    {
-        auto reader = vtkSmartPointer<vtkXMLPolyDataReader>::New();
-
-        reader->SetFileName(fName.c_str());
-        reader->Update();
-        dataset = reader->GetOutput();
-
-        return dataset;
-    }
-
-    return dataset;
+    return (multiPiece) &&
+    (
+        addCloudField<label>
+        (
+            multiPiece, ioptr, fieldName
+        )
+     || addCloudField<scalar>
+        (
+            multiPiece, ioptr, fieldName
+        )
+     || addCloudField<vector>
+        (
+            multiPiece, ioptr, fieldName
+        )
+     || addCloudField<sphericalTensor>
+        (
+            multiPiece, ioptr, fieldName
+        )
+     || addCloudField<symmTensor>
+        (
+            multiPiece, ioptr, fieldName
+        )
+     || addCloudField<tensor>
+        (
+            multiPiece, ioptr, fieldName
+        )
+    );
 }
-
-} // End anonymous namespace
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-Foam::functionObjects::runTimePostPro::functionObjectCloud::functionObjectCloud
+Foam::functionObjects::runTimePostPro::geometryCloud::geometryCloud
 (
     const runTimePostProcessing& parent,
     const dictionary& dict,
@@ -95,9 +107,8 @@ Foam::functionObjects::runTimePostPro::functionObjectCloud::functionObjectCloud
 )
 :
     pointData(parent, dict, colours),
-    functionObjectBase(parent, dict, colours),
+    fieldVisualisationBase(dict, colours),
     cloudName_(dict.get<word>("cloud")),
-    inputFileName_(),
     colourFieldName_(dict.get<word>("colourField")),
     actor_()
 {}
@@ -105,15 +116,15 @@ Foam::functionObjects::runTimePostPro::functionObjectCloud::functionObjectCloud
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-Foam::functionObjects::runTimePostPro::functionObjectCloud::
-~functionObjectCloud()
+Foam::functionObjects::runTimePostPro::geometryCloud::
+~geometryCloud()
 {}
 
 
 // * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * * //
 
-bool Foam::functionObjects::runTimePostPro::functionObjectCloud::
-addGeometryFromFile
+bool Foam::functionObjects::runTimePostPro::geometryCloud::
+addGeometry
 (
     const scalar position,
     vtkRenderer* renderer
@@ -124,64 +135,50 @@ addGeometryFromFile
         return false;
     }
 
-    vtkSmartPointer<vtkPolyData> polyData;
 
-    bool good = true;
+    // This is similar (almost identical) to vtkCloud
 
-    // The vtkCloud stores 'file' via the stateFunctionObject
-    // (lookup by cloudName).
-    // It only generates VTP format, which means there is a single file
-    // containing all fields.
-
-    if (Pstream::master())
-    {
-        inputFileName_ = getFileName("file", cloudName_);
-
-        if (inputFileName_.size())
-        {
-            polyData = getPolyDataFile(inputFileName_);
-
-            if (!polyData || polyData->GetNumberOfPoints() == 0)
-            {
-                good = false;
-
-                WarningInFunction
-                    << "Could not read "<< inputFileName_ << nl
-                    << "Only VTK (.vtp) files are supported"
-                    << endl;
-            }
-            else
-            {
-                DebugInfo
-                    << "    Resolved cloud file "
-                    << inputFileName_ << endl;
-            }
-        }
-        else
-        {
-            good = false;
-
-            WarningInFunction
-                << "Unable to find function object " << functionObjectName_
-                << " output for field " << fieldName_
-                << ". Cloud will not be processed"
-                << endl;
-        }
-    }
-    else
-    {
-        inputFileName_.clear();
-    }
-
-    reduce(good, andOp<bool>());
-
-    if (!good)
+    const auto* objPtr = parent().mesh().cfindObject<cloud>(cloudName_);
+    if (!objPtr)
     {
         return false;
     }
 
-    // Only render on master
-    if (!renderer || !Pstream::master())
+    objectRegistry obrTmp
+    (
+        IOobject
+        (
+            "runTimePostPro::cloud::" + cloudName_,
+            parent().mesh().time().constant(),
+            parent().mesh(),
+            IOobject::NO_READ,
+            IOobject::NO_WRITE,
+            false
+        )
+    );
+
+    objPtr->writeObjects(obrTmp);
+
+    const auto* pointsPtr = obrTmp.findObject<vectorField>("position");
+
+    if (!pointsPtr)
+    {
+        // This should be impossible
+        return false;
+    }
+
+
+    // Create a vtkMultiPieceDataSet with vtkPolyData on the leaves
+    auto multiPiece = gatherCloud(obrTmp);
+
+    // Add in scaleField and colourField
+    addCloudField(multiPiece, obrTmp, fieldName_);
+    addCloudField(multiPiece, obrTmp, colourFieldName_);
+
+
+    // Not rendered on this processor?
+    // This is where we stop, but could also have an MPI barrier
+    if (!renderer)
     {
         return true;
     }
@@ -193,12 +190,15 @@ addGeometryFromFile
 
     {
         fieldSummary scaleFieldInfo =
-            queryFieldSummary(fieldName_, polyData);
+            queryFieldSummary(fieldName_, multiPiece);
 
         fieldSummary colourFieldInfo =
-            queryFieldSummary(colourFieldName_, polyData);
+            queryFieldSummary(colourFieldName_, multiPiece);
 
-        // No reduction
+        auto polyData = vtkSmartPointer<vtkCompositeDataGeometryFilter>::New();
+
+        polyData->SetInputData(multiPiece);
+        polyData->Update();
 
         auto mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
 
@@ -212,7 +212,7 @@ addGeometryFromFile
             fieldName_, scaleFieldInfo,         // scaling
             colourFieldName_, colourFieldInfo,  // colour
             maxGlyphLength_,
-            polyData,
+            polyData->GetOutput(),
             actor_,
             renderer
         );
@@ -224,19 +224,19 @@ addGeometryFromFile
 }
 
 
-void Foam::functionObjects::runTimePostPro::functionObjectCloud::
+void Foam::functionObjects::runTimePostPro::geometryCloud::
 addGeometryToScene
 (
     const scalar position,
     vtkRenderer* renderer
 )
 {
-    // File source
-    addGeometryFromFile(position, renderer);
+    // Live source
+    addGeometry(position, renderer);
 }
 
 
-void Foam::functionObjects::runTimePostPro::functionObjectCloud::updateActors
+void Foam::functionObjects::runTimePostPro::geometryCloud::updateActors
 (
     const scalar position
 )
@@ -254,17 +254,8 @@ void Foam::functionObjects::runTimePostPro::functionObjectCloud::updateActors
 }
 
 
-bool Foam::functionObjects::runTimePostPro::functionObjectCloud::clear()
+bool Foam::functionObjects::runTimePostPro::geometryCloud::clear()
 {
-    if (functionObjectBase::clear())
-    {
-        if (inputFileName_.size() && Foam::rm(inputFileName_))
-        {
-            inputFileName_.clear();
-            return true;
-        }
-    }
-
     return false;
 }
 

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2015-2018 OpenCFD Ltd.
+    \\  /    A nd           | Copyright (C) 2015-2019 OpenCFD Ltd.
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -32,6 +32,18 @@ License
 #include "vtkProperty.h"
 
 // * * * * * * * * * * * * * Static Member Functions * * * * * * * * * * * * //
+
+namespace Foam
+{
+namespace functionObjects
+{
+namespace runTimePostPro
+{
+
+    defineDebugSwitchWithName(geometryBase, "runTimePostPro::geometryBase", 0);
+}
+}
+}
 
 const Foam::Enum
 <
@@ -87,7 +99,7 @@ Foam::functionObjects::runTimePostPro::geometryBase::geometryBase
 :
     parent_(parent),
     name_(dict.dictName()),
-    visible_(dict.get<bool>("visible")),
+    visible_(dict.lookupOrDefault("visible", true)),
     renderMode_
     (
         renderModeTypeNames.lookupOrDefault("renderMode", dict, rmGouraud)
@@ -118,6 +130,13 @@ const Foam::functionObjects::runTimePostProcessing&
 Foam::functionObjects::runTimePostPro::geometryBase::parent() const
 {
     return parent_;
+}
+
+
+bool Foam::functionObjects::runTimePostPro::geometryBase::
+needsCollective() const
+{
+    return parent_.needsCollective();
 }
 
 

@@ -143,12 +143,13 @@ Foam::functionObjects::runTimePostPro::pointData::New
 
     if (!cstrIter.found())
     {
-        FatalErrorInFunction
-            << "Unknown pointData type "
-            << pointDataType << nl << nl
-            << "Valid pointData types :" << endl
-            << dictionaryConstructorTablePtr_->sortedToc()
-            << exit(FatalError);
+        FatalIOErrorInLookup
+        (
+            dict,
+            "pointData",
+            pointDataType,
+            *dictionaryConstructorTablePtr_
+        ) << exit(FatalIOError);
     }
 
     return autoPtr<pointData>(cstrIter()(parent, dict, colours));

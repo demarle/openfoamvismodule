@@ -2,8 +2,11 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2018 OpenCFD Ltd.
-     \\/     M anipulation  | Copyright (C) 2018 CINECA
+    \\  /    A nd           | www.openfoam.com
+     \\/     M anipulation  |
+-------------------------------------------------------------------------------
+    Copyright (C) 2018 OpenCFD Ltd.
+    Copyright (C) 2018 CINECA
 -------------------------------------------------------------------------------
 License
     This file is part of OpenFOAM.

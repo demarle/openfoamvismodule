@@ -115,11 +115,15 @@ void Foam::functionObjects::runTimePostPro::surface::setRepresentation
         case rtGlyph:
         case rtSurface:
         {
+            actor->GetProperty()->SetBackfaceCulling(backFaceCulling_);
+            actor->GetProperty()->SetFrontfaceCulling(frontFaceCulling_);
             actor->GetProperty()->SetRepresentationToSurface();
             break;
         }
         case rtSurfaceWithEdges:
         {
+            actor->GetProperty()->SetBackfaceCulling(backFaceCulling_);
+            actor->GetProperty()->SetFrontfaceCulling(frontFaceCulling_);
             actor->GetProperty()->SetRepresentationToSurface();
             actor->GetProperty()->EdgeVisibilityOn();
             break;
@@ -207,6 +211,8 @@ Foam::functionObjects::runTimePostPro::surface::surface
         representationTypeNames.get("representation", dict)
     ),
     featureEdges_(dict.getOrDefault("featureEdges", false)),
+    backFaceCulling_(dict.getOrDefault("backFaceCulling", false)),
+    frontFaceCulling_(dict.getOrDefault("frontFaceCulling", true)),
     surfaceColour_(nullptr),
     edgeColour_(nullptr),
     surfaceActor_(),

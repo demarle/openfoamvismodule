@@ -1,7 +1,7 @@
 #-----------------------------------------------------------------------------
-
 cmake_minimum_required(VERSION 2.8)
-cmake_policy(SET CMP0002 NEW)   # Policy CMP0002 required for for cmake >= 3
+cmake_policy(SET CMP0002 NEW)   # For cmake >= 3
+cmake_policy(SET CMP0057 NEW)   # For cmake >= 3.10.2
 
 # Fail if not building out-of-source
 if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
@@ -32,16 +32,29 @@ else()
     endif()
 endif()
 
+# Pass through the OpenFOAM API value to the reader
+set(foam_api "$ENV{FOAM_API}")
+if (NOT "${foam_api}")
+    set(foam_api "2.0")
+endif()
+
 set(foamPvLibQualifier "-pv${pv_api}")
-message("OpenFOAM libraries qualified with ${foamPvLibQualifier}")
+
+#-----------------------------------------------------------------------------
+
+message("================")
+message("Using ParaView = $ENV{ParaView_DIR}")
+message("OpenFOAM api   = ${foam_api}, libs = ${foamPvLibQualifier}")
 
 #-----------------------------------------------------------------------------
 
 include(CMakeLists-OpenFOAM.txt)
 
 if (${ParaView_VERSION} GREATER_EQUAL 5.7)
+  message("================")
   include(CMakeLists-Project57.txt)
 else()
+  message("================")
   include(${PARAVIEW_USE_FILE})
   include(CMakeLists-Project.txt)
 endif()

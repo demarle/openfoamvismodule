@@ -1,13 +1,18 @@
 #!/bin/sh
-cd ${0%/*} || exit 1                            # Run from this directory
-. $WM_PROJECT_DIR/wmake/scripts/cmakeFunctions  # The CMake functions
-
+cd "${0%/*}" || exit                                # Run from this directory
+. ${WM_PROJECT_DIR:?}/wmake/scripts/cmakeFunctions  # Require cmake functions
 # -----------------------------------------------------------------------------
 
 echo "======================================================================"
 echo "${PWD##*/} : $PWD"
 
 unset depend runTimePostProDebug
+
+# If available, prefer use of ParaView MESA
+if [ -d "$ParaView_MESA_DIR" ]
+then
+    export ParaView_DIR="$ParaView_MESA_DIR"
+fi
 
 if [ -d "$VTK_DIR" ]
 then
@@ -28,7 +33,7 @@ then
     depend=ignore
 elif [ -n "$depend" ]
 then
-    if command -v cmake > /dev/null 2>&1
+    if command -v cmake >/dev/null
     then
         cmakeVersioned "$depend" $PWD || {
             echo

@@ -4,4 +4,6 @@ targetType=libso
 . ${WM_PROJECT_DIR:?}/wmake/scripts/AllwmakeParseArguments
 #------------------------------------------------------------------------------
 
+runTimePostProcessing/Allwmake $targetType $*
+
 #------------------------------------------------------------------------------

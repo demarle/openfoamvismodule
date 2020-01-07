@@ -14,3 +14,9 @@ not yet supported by the regular OpenFOAM readers from VTK.
 
 However, they are also lacking some features that the regular OpenFOAM
 readers from VTK have.
+
+
+### runTimePostProcessing
+
+An _insitu_ visualization function-object using VTK with pre-defined
+functionality for geometry and scenes.

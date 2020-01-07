@@ -20,3 +20,8 @@ readers from VTK have.
 
 An _insitu_ visualization function-object using VTK with pre-defined
 functionality for geometry and scenes.
+
+
+### catalyst
+
+An _insitu_ visualization function-object using ParaView/Catalyst.

@@ -2,6 +2,7 @@
 cd "${0%/*}" || exit                            # Run from this directory
 #------------------------------------------------------------------------------
 
+catalyst/Allwclean
 paraview-plugins/Allwclean
 runTimePostProcessing/Allwclean
 

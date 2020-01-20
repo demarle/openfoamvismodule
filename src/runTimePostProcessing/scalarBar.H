@@ -122,7 +122,7 @@ class scalarBar
 
 public:
 
-    //- Construct with sensible defaults
+    //- Default construct with sensible defaults
     scalarBar();
 
     //- Reset to sensible defaults

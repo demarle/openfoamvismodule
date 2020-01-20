@@ -93,7 +93,7 @@ class vtkTextActor;
 namespace Foam
 {
 
-// Forward declarations (OpenFOAM)
+// Forward Declarations (OpenFOAM)
 class argList;
 class Time;
 class faMesh;
@@ -208,6 +208,7 @@ class vtkPVFoam
 
         //- Reset data counters
         void resetCounters();
+
 
     // Update information helper functions
 
@@ -430,9 +431,8 @@ class vtkPVFoam
 
 public:
 
-    //- Static data members
-
-        ClassName("vtkPVFoam");
+    //- Declare type-name (with debug switch)
+    ClassName("vtkPVFoam");
 
 
     // Constructors
@@ -475,11 +475,15 @@ public:
         //  sets to "constant" on error
         int setTime(const std::vector<double>& requestTimes);
 
+
         //- The current time index
         int timeIndex() const
         {
            return timeIndex_;
         }
+
+
+    // Access
 
         //- Debug information
         void PrintSelf(ostream&, vtkIndent) const;

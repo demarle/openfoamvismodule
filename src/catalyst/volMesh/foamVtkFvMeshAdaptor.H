@@ -74,7 +74,7 @@ class vtkIndent;
 namespace Foam
 {
 
-// Forward declarations
+// Forward Declarations
 class fvMesh;
 template<class Type> class Field;
 
@@ -89,7 +89,7 @@ class fvMeshAdaptor
 {
 public:
 
-        //- Public Data Members
+    // Public Data Members
 
         //- The types of output blocks. Defined as a bitmask.
         enum channelType : unsigned
@@ -255,15 +255,14 @@ private:
 
 public:
 
-    //- Static Data Members
-
-        ClassName("vtk::fvMeshAdaptor");
+    //- Declare type-name (with debug switch)
+    ClassName("vtk::fvMeshAdaptor");
 
 
     // Constructors
 
         //- Construct from components
-        fvMeshAdaptor
+        explicit fvMeshAdaptor
         (
             const fvMesh& mesh,
             const channelType channelsOpt = channelType::DEFAULT,

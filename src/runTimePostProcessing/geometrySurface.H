@@ -97,7 +97,7 @@ protected:
 
 public:
 
-    //- Run-time type information
+    //- Declare type-name, virtual type (with debug switch)
     TypeName("geometry");
 
 

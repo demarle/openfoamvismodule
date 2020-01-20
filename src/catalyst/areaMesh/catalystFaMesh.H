@@ -99,7 +99,7 @@ class faMeshInput
 {
 protected:
 
-    // Protected data
+    // Protected Data
 
         //- Reference to the time database
         const Time& time_;
@@ -133,7 +133,7 @@ protected:
 
 public:
 
-    //- Runtime type information
+    //- Declare type-name (with debug switch)
     ClassName("catalyst::faMesh");
 
 

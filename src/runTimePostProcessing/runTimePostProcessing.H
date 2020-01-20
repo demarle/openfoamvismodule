@@ -132,12 +132,12 @@ namespace Foam
 {
 namespace functionObjects
 {
-// Forward declarations
+// Forward Declarations
 class runTimePostProcessing;
 
 namespace runTimePostPro
 {
-// Forward declarations
+// Forward Declarations
 class pointData;
 class pathline;
 class surface;
@@ -202,7 +202,7 @@ class runTimePostProcessing
 
 public:
 
-    //- Runtime type information
+    //- Declare type-name, virtual type (with debug switch)
     TypeName("runTimePostProcessing");
 
 

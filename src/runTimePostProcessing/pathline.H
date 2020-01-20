@@ -51,7 +51,7 @@ SourceFiles
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-// Forward declarations
+// Forward Declarations
 class vtkActor;
 class vtkPolyData;
 class vtkPolyDataMapper;
@@ -90,7 +90,7 @@ public:
 
 protected:
 
-    // Protected data
+    // Protected Data
 
         //- Representation type
         representationType representation_;
@@ -121,7 +121,7 @@ protected:
 
 public:
 
-    //- Run-time type information
+    //- Declare type-name, virtual type (without debug switch)
     TypeNameNoDebug("pathline");
 
 

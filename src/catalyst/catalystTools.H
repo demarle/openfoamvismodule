@@ -43,7 +43,7 @@ SourceFiles
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-// Forward declarations
+// Forward Declarations
 class vtkCPDataDescription;
 class vtkCPProcessor;
 class vtkMultiBlockDataSet;
@@ -52,7 +52,7 @@ template<class T> class vtkSmartPointer;
 namespace Foam
 {
 
-// Forward declarations
+// Forward Declarations
 class Ostream;
 class Time;
 
@@ -63,7 +63,6 @@ namespace catalyst
 
 //- Container holding VTK outputs per Catalyst channel name
 typedef HashTable<vtkSmartPointer<vtkMultiBlockDataSet>> outputChannels;
-
 
 //- Print information about data description
 void printInfo(Ostream& os, vtkCPDataDescription* descrip);
@@ -133,7 +132,7 @@ public:
     // Constructors
 
         //- Construct query for given time. Add channels later
-        dataQuery(const Foam::Time& when);
+        explicit dataQuery(const Foam::Time& when);
 
 
     //- Destructor

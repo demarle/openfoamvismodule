@@ -52,7 +52,7 @@ SourceFiles
 namespace Foam
 {
 
-// Forward declarations
+// Forward Declarations
 class dictionary;
 class mapPolyMesh;
 class Time;
@@ -66,12 +66,16 @@ namespace catalyst
 
 class catalystInput
 {
-    // Private data
+    // Private Data
 
         //- The Catalyst input channel name
         word name_;
 
 public:
+
+    //- Declare type-name (with debug switch)
+    ClassName("catalyst::input");
+
 
     // Declare run-time constructor selection table
 
@@ -98,10 +102,6 @@ public:
             const Time& runTime,
             const dictionary& dict
         );
-
-
-    //- Runtime type information
-    ClassName("catalyst::input");
 
 
     // Constructors

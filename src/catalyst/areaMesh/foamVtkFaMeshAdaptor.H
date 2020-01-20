@@ -67,7 +67,7 @@ class vtkIndent;
 namespace Foam
 {
 
-// Forward declarations
+// Forward Declarations
 class Time;
 class faMesh;
 template<class Type> class Field;
@@ -83,13 +83,15 @@ class faMeshAdaptor
 {
 public:
 
-        //- Public Data Members
+    // Public Data Members
 
         //- Name for internal mesh ("internal")
         static const word internalName;
 
 
 private:
+
+    // Private Classes
 
         //- Bookkeeping for vtkPolyData
         struct foamVtpData
@@ -160,15 +162,14 @@ private:
 
 public:
 
-    //- Static Data Members
-
-        ClassName("vtk::faMeshAdaptor");
+    //- Declare type-name (with debug switch)
+    ClassName("vtk::faMeshAdaptor");
 
 
     // Constructors
 
-        //- Construct from components
-        faMeshAdaptor(const faMesh& mesh);
+        //- Construct for mesh region
+        explicit faMeshAdaptor(const faMesh& mesh);
 
 
     //- Destructor

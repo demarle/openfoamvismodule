@@ -38,7 +38,7 @@ SourceFiles
 
 #include "pqPropertyWidget.h"
 
-// Forward declarations
+// Forward Declarations
 class vtkSMProperty;
 class vtkSMIntVectorProperty;
 
@@ -54,7 +54,7 @@ class pqFoamReaderControls
     Q_OBJECT;
     typedef pqPropertyWidget Superclass;
 
-    // Private data
+    // Private Data
 
         //- Refresh (push button)
         vtkSMProperty* refresh_;
@@ -123,7 +123,6 @@ public:
 
     //- Destructor
     virtual ~pqFoamReaderControls();
-
 };
 
 

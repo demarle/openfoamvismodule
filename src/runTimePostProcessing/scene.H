@@ -76,7 +76,7 @@ SourceFiles
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-// Forward declarations
+// Forward Declarations
 class vtkActor;
 class vtkRenderer;
 class vtkRenderWindow;
@@ -94,7 +94,7 @@ namespace runTimePostPro
 
 class scene
 {
-    // Private data
+    // Private Data
 
         //- Reference to the object registry
         const objectRegistry& obr_;
@@ -127,7 +127,7 @@ class scene
 
 protected:
 
-    // Protected data
+    // Protected Data
 
         //- Colours
         HashPtrTable<Function1<vector>> colours_;

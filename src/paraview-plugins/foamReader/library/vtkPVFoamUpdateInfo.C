@@ -59,7 +59,6 @@ class zonesEntries
     public regIOobject,
     public PtrList<entry>
 {
-
 public:
 
     // Constructors
@@ -72,7 +71,7 @@ public:
             close();
         }
 
-   // Member functions
+    // Member Functions
 
         bool writeData(Ostream&) const
         {

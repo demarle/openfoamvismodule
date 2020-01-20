@@ -40,7 +40,7 @@ SourceFiles
 
 #include "pqPropertyWidget.h"
 
-// Forward declarations (ParaView)
+// Forward Declarations (ParaView)
 class vtkSMProperty;
 class vtkSMIntVectorProperty;
 
@@ -56,7 +56,7 @@ class pqFoamBlockMeshControls
     Q_OBJECT;
     typedef pqPropertyWidget Superclass;
 
-    // Private data
+    // Private Data
 
         //- Refresh (push button)
         vtkSMProperty* refresh_;
@@ -114,7 +114,6 @@ public:
 
     //- Destructor
     virtual ~pqFoamBlockMeshControls();
-
 };
 
 

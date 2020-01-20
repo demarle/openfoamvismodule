@@ -56,8 +56,6 @@ namespace catalyst
 
 class coprocess
 {
-private:
-
     // Private Data
 
         //- The currently active ParaView Catalyst co-process
@@ -76,13 +74,13 @@ private:
 
 public:
 
-    //- Define class name and debug
+    //- Declare type-name (with debug switch)
     ClassName("catalyst");
 
 
     // Constructors
 
-        //- Construct null. Does not initialize catalyst.
+        //- Default construct. Does not initialize catalyst.
         constexpr coprocess() noexcept
         :
             coproc_(nullptr)
@@ -129,7 +127,6 @@ public:
 
         //- Finalize
         void stop();
-
 };
 
 

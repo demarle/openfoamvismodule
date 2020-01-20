@@ -191,7 +191,7 @@ public:
 
 protected:
 
-    //- Construct null
+    //- Default construct
     vtkPVFoamReader();
 
     //- Destructor

@@ -153,9 +153,8 @@ class vtkPVblockMesh
 
 public:
 
-    //- Static data members
-
-        ClassName("vtkPVblockMesh");
+    //- Declare type-name (with debug switch)
+    ClassName("vtkPVblockMesh");
 
 
     // Constructors
@@ -188,6 +187,8 @@ public:
         //- Add/remove point numbers to/from the view
         void renderPointNumbers(vtkRenderer* renderer, const bool show);
 
+
+    // Access
 
         //- Debug information
         void PrintSelf(ostream&, vtkIndent) const;

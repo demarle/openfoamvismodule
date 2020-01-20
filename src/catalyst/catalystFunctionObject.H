@@ -119,7 +119,7 @@ class catalystFunctionObject
 :
     public functionObject
 {
-    // Private data
+    // Private Data
 
         //- Reference to the time database
         const Time& time_;
@@ -148,14 +148,14 @@ class catalystFunctionObject
 
 public:
 
+    //- Declare type-name (with debug switch)
+    TypeName("catalyst");
+
+
     // Static Methods
 
         //- Expand strings as filenames, retaining only those that exist
         static label expand(List<string>& scripts, const dictionary& dict);
-
-
-    //- Runtime type information
-    TypeName("catalyst");
 
 
     // Constructors

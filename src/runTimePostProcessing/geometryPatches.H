@@ -118,7 +118,7 @@ protected:
 
 public:
 
-    //- Run-time type information
+    //- Declare type-name, virtual type (without debug switch)
     TypeNameNoDebug("patches");
 
 

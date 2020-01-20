@@ -62,6 +62,7 @@ template<class T> class vtkSmartPointer;
 namespace Foam
 {
 
+// Forward Declarations
 class IOobjectList;
 
 /*---------------------------------------------------------------------------*\
@@ -165,13 +166,12 @@ public:
 
             return indices;
         }
-
     }; // End class arrayRange
 
 
 public:
 
-    //- Construct null
+    //- Default construct
     constexpr foamPvCore() noexcept {}
 
 
@@ -293,11 +293,10 @@ public:
 
     //- Simple memory used debugging information
     static void printMemory();
+};
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-}; // End class foamPvCore
 
 } // End namespace Foam
 

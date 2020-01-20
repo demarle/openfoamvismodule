@@ -146,7 +146,7 @@ public:
             unsigned association_;
             scalarMinMax range_;
 
-            //- Construct null
+            //- Default construct
             fieldSummary()
             :
                 nComponents_(0),

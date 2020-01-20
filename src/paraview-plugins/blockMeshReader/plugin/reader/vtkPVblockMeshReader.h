@@ -118,7 +118,7 @@ public:
 
 protected:
 
-    //- Construct null
+    //- Default construct
     vtkPVblockMeshReader();
 
     //- Destructor

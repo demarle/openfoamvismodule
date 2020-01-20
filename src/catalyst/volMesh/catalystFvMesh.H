@@ -126,7 +126,7 @@ class fvMeshInput
 {
 protected:
 
-    // Protected data
+    // Protected Data
 
         //- Channel enumeration from vtk::fvMeshAdaptor
         using channelType = vtk::fvMeshAdaptor::channelType;
@@ -169,7 +169,7 @@ protected:
 
 public:
 
-    //- Runtime type information
+    //- Declare type-name (with debug switch)
     ClassName("catalyst::fvMesh");
 
 

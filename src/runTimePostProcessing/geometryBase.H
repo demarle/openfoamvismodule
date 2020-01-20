@@ -69,7 +69,6 @@ class runTimePostProcessing;
 namespace runTimePostPro
 {
 
-
 /*---------------------------------------------------------------------------*\
                         Class geometryBase Declaration
 \*---------------------------------------------------------------------------*/
@@ -94,7 +93,7 @@ public:
 
 protected:
 
-    // Protected data
+    // Protected Data
 
         //- Reference to the parent function object
         const runTimePostProcessing& parent_;

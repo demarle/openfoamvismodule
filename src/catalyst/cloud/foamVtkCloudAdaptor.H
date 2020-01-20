@@ -65,7 +65,7 @@ namespace vtk
 
 class cloudAdaptor
 {
-    // Private data
+    // Private Data
 
         const fvMesh& mesh_;
 
@@ -95,6 +95,7 @@ class cloudAdaptor
             const UnaryPredicate& pred
         );
 
+
     // Constructors
 
         //- No copy construct
@@ -106,15 +107,14 @@ class cloudAdaptor
 
 public:
 
-    //- Static Data Members
-
-        ClassName("vtk::cloudAdaptor");
+    //- Declare type-name (with debug switch)
+    ClassName("vtk::cloudAdaptor");
 
 
     // Constructors
 
         //- Construct for a particular mesh region
-        cloudAdaptor(const fvMesh& mesh);
+        explicit cloudAdaptor(const fvMesh& mesh);
 
 
     //- Destructor

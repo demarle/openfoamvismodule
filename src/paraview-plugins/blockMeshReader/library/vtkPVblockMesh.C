@@ -183,9 +183,13 @@ Foam::vtkPVblockMesh::vtkPVblockMesh
     rangeEdges_("edges"),
     rangeCorners_("corners")
 {
+    // Reduce some output
+    ::Foam::infoDetailLevel = 0;
+
     DebugInfo << "vtkPVblockMesh - " << FileName << endl;
 
-    // avoid argList and get rootPath/caseName directly from the file
+    // Avoid argList (possible side-effects)
+    // - get rootPath/caseName directly from the file
     fileName fullCasePath(fileName(FileName).path());
 
     if (!isDir(fullCasePath))

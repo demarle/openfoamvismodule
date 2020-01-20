@@ -296,6 +296,9 @@ Foam::vtkPVFoam::vtkPVFoam
     rangeFaceSets_("faceSet"),
     rangePointSets_("pointSet")
 {
+    // Reduce some output
+    ::Foam::infoDetailLevel = 0;
+
     if (debug)
     {
         Info<< "vtkPVFoam - " << vtkFileName << nl;
@@ -304,7 +307,8 @@ Foam::vtkPVFoam::vtkPVFoam
 
     fileName FileName(vtkFileName);
 
-    // avoid argList and get rootPath/caseName directly from the file
+    // Avoid argList (possible side-effects)
+    // - get rootPath/caseName directly from the file
     fileName fullCasePath(FileName.path());
 
     if (!isDir(fullCasePath))

@@ -1,6 +1,7 @@
 #------------------------------------------------------------------------------
 cmake_minimum_required(VERSION 2.8)
-cmake_policy(SET CMP0002 NEW)   # Policy CMP0002 required for for cmake >= 3
+cmake_policy(SET CMP0002 NEW)   # For cmake >= 3
+cmake_policy(SET CMP0057 NEW)   # For cmake >= 3.10.2
 
 # Fail if not building out-of-source
 if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
@@ -8,20 +9,36 @@ if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
         "In-source builds disallowed. Use a separate build directory")
 endif()
 
-include(CMakeLists-OpenFOAM.txt)
-
 #------------------------------------------------------------------------------
-# Simple sanity checks
+# Simple discovery and sanity checks
 
 if (EXISTS "$ENV{ParaView_DIR}")
-    find_package(ParaView REQUIRED COMPONENTS vtkPVPythonCatalyst)
+    find_package(ParaView REQUIRED)
 else()
     message(FATAL_ERROR "ParaView_DIR not set")
 endif()
 
+# Define pv_api as MAJ.MIN
+if (${ParaView_VERSION} GREATER_EQUAL 5.7)
+    string(REGEX MATCH [0-9]+[.][0-9]+ pv_api ${ParaView_VERSION})
+    set(pv_version "${ParaView_VERSION}")
+else()
+    set(pv_api "${PARAVIEW_VERSION_MAJOR}.${ParaView_VERSION_MINOR}")
+    set(pv_version "${PARAVIEW_VERSION_MAJOR}.${PARAVIEW_VERSION_MINOR}.${PARAVIEW_VERSION_PATCH}")
+endif()
+
+if (${ParaView_VERSION} GREATER_EQUAL 5.7)
+    find_package(ParaView REQUIRED
+        COMPONENTS PythonCatalyst
+        OPTIONAL_COMPONENTS VTK::ParallelMPI)
+else()
+    find_package(ParaView REQUIRED
+        COMPONENTS vtkPVPythonCatalyst
+        OPTIONAL_COMPONENTS vtkParallelMPI)
+    ## include(${PARAVIEW_USE_FILE})
+endif()
 
 #-----------------------------------------------------------------------------
-# All messages
 
 message("================")
 message("Using OpenFOAM = $ENV{WM_PROJECT_DIR}")
@@ -32,9 +49,9 @@ endif()
 message("install prefix = ${CMAKE_INSTALL_PREFIX}")
 message("================")
 
-
 #-----------------------------------------------------------------------------
 
+include(CMakeLists-OpenFOAM.txt)
 include(CMakeLists-Project.txt)
 
 #-----------------------------------------------------------------------------

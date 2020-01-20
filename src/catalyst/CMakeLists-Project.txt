@@ -1,32 +1,29 @@
 #------------------------------------------------------------------------------
 project(catalyst)
 
-include(${PARAVIEW_USE_FILE})
+set(CMAKE_BUILD_TYPE Release)
 
 # ----------------------------------------------------------------------
-# Test some characteristics
-set(test_file ${CMAKE_CURRENT_BINARY_DIR}/check_initialize.cxx)
-file(WRITE ${test_file}
-    "#include <vtkCPProcessor.h>\n"
-    "int main() {\n"
-    "  vtkCPProcessor* p = vtkCPProcessor::New();\n"
-    "  p->Initialize(\"AAA\");\n"
-    "  p->Delete();\n"
-    "  return 0;\n"
-    "}"
-)
-try_compile(CATALYST_HAS_WORKING_DIRECTORY
-    ${CMAKE_CURRENT_BINARY_DIR} ${test_file}
-    LINK_LIBRARIES vtkPVPythonCatalyst
-    CMAKE_FLAGS "-DINCLUDE_DIRECTORIES=${PARAVIEW_INCLUDE_DIRS}"
-)
-if (CATALYST_HAS_WORKING_DIRECTORY)
-    add_definitions(-DUSE_CATALYST_WORKING_DIRECTORY)
-else()
-    message(WARNING "==== CAUTION: ParaView Catalyst without chdir capability ====")
+unset(LINK_LIBRARIES)
+
+# Prior to paraview-5.6 no working directory support in Catalyst
+if (${ParaView_VERSION} LESS 5.6)
+    add_definitions(-DNO_CATALYST_WORKING_DIRECTORY)
+    message(WARNING "==== CAUTION: Catalyst without chdir capability ====")
+endif()
+
+if (${ParaView_VERSION} GREATER_EQUAL 5.7)
+    if (TARGET "VTK::ParallelMPI")
+        set(FOAM_USING_VTK_MPI TRUE)
+    endif()
 endif()
 
 # ----------------------------------------------------------------------
+
+link_directories(
+    $ENV{FOAM_LIBBIN}
+    $ENV{FOAM_LIBBIN}/dummy
+)
 
 include_directories(
     ${LIB_SRC}/OpenFOAM/include
@@ -42,13 +39,6 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_BINARY_DIR}
 )
-
-link_directories(
-    $ENV{FOAM_LIBBIN}
-    $ENV{FOAM_LIBBIN}/dummy
-)
-
-set(CMAKE_BUILD_TYPE Release)
 
 
 file(GLOB SOURCE_FILES
@@ -83,13 +73,6 @@ set(OPENFOAM_LIBRARIES
     overset
 )
 
-
-if (PARAVIEW_USE_MPI)
-    set(LINK_LIBRARIES vtkPVPythonCatalyst vtkParallelMPI)
-else()
-    set(LINK_LIBRARIES vtkPVPythonCatalyst)
-endif()
-
 add_library(
     catalystFoam
     SHARED
@@ -99,12 +82,13 @@ add_library(
 set_target_properties(
     catalystFoam
     PROPERTIES
-    VERSION ${PARAVIEW_VERSION_MAJOR}.${PARAVIEW_VERSION_MINOR}.${PARAVIEW_VERSION_PATCH}
-    SOVERSION ${PARAVIEW_VERSION_MAJOR}.${PARAVIEW_VERSION_MINOR}
+    VERSION ${pv_version}
+    SOVERSION ${pv_api}
 )
 
 target_link_libraries(
     catalystFoam
+    ${VTK_LIBRARIES}
     ${LINK_LIBRARIES}
     ${OPENFOAM_LIBRARIES}
 )

@@ -5,7 +5,7 @@
     \\  /    A nd           | www.openfoam.com
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
-    Copyright (C) 2018 OpenCFD Ltd.
+    Copyright (C) 2018-2020 OpenCFD Ltd.
     Copyright (C) 2018 CINECA
 -------------------------------------------------------------------------------
 License
@@ -118,7 +118,7 @@ void Foam::catalyst::coprocess::stop()
 
 void Foam::catalyst::coprocess::reset(const fileName& outputDir)
 {
-    #ifdef USE_CATALYST_WORKING_DIRECTORY
+    #ifndef NO_CATALYST_WORKING_DIRECTORY
     if (coproc_ == nullptr)
     {
         coproc_ = vtkCPProcessor::New();

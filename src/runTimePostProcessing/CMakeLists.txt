@@ -1,6 +1,7 @@
 #------------------------------------------------------------------------------
 cmake_minimum_required(VERSION 2.8)
-cmake_policy(SET CMP0002 NEW)   # Policy CMP0002 required for for cmake >= 3
+cmake_policy(SET CMP0002 NEW)   # For cmake >= 3
+cmake_policy(SET CMP0057 NEW)   # For cmake >= 3.10.2
 
 # Fail if not building out-of-source
 if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
@@ -11,15 +12,22 @@ endif()
 #-----------------------------------------------------------------------------
 # Simple discovery and sanity checks
 
+set(ParaView_VERSION 0)
 unset(VTK_VERSION)
 unset(VTK_VERSION_MAJOR)
 
 if (EXISTS "$ENV{VTK_DIR}")
     message("Building with VTK from $ENV{VTK_DIR}")
-    find_package(VTK REQUIRED HINTS $ENV{VTK_DIR})
+    find_package(VTK REQUIRED)
+
 elseif (EXISTS "$ENV{ParaView_DIR}")
     message("Building with Paraview from $ENV{ParaView_DIR}")
-    find_package(ParaView REQUIRED HINTS $ENV{ParaView_DIR})
+
+    find_package(ParaView REQUIRED)
+    if (${ParaView_VERSION} GREATER_EQUAL 5.7)
+        find_package(ParaView REQUIRED
+            OPTIONAL_COMPONENTS VTK::ParallelMPI)
+    endif()
 else()
     message(FATAL_ERROR "VTK not found using VTK_DIR or ParaView_DIR")
 endif()
@@ -46,6 +54,23 @@ if (VTK_MAJOR_VERSION AND NOT VTK_VERSION_MAJOR)
         message("Synthesized VTK version: " ${VTK_VERSION})
     endif()
 endif()
+
+if (${ParaView_VERSION} GREATER 0)
+    # Newer VTK - try to load optional MPI?
+    if (${VTK_VERSION} GREATER 8.2)
+        find_package(VTK REQUIRED OPTIONAL_COMPONENTS ParallelMPI)
+    endif()
+endif()
+
+#-----------------------------------------------------------------------------
+
+message("================")
+if (${ParaView_VERSION} GREATER 0)
+message("Using ParaView ${ParaView_VERSION} (VTK ${VTK_VERSION})")
+else()
+message("Using VTK ${VTK_VERSION}")
+endif()
+message("================")
 
 #-----------------------------------------------------------------------------
 

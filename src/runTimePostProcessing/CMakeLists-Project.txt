@@ -1,37 +1,64 @@
 #-----------------------------------------------------------------------------
 project(runTimePostProcessing)
 
-message("VTK version: " ${VTK_VERSION})
+set(CMAKE_BUILD_TYPE Release)
 
 if(${VTK_VERSION_MAJOR} LESS 6)
     message(FATAL_ERROR " VTK version is too old - requires VTK6 or newer")
 endif()
 
 #-----------------------------------------------------------------------------
+unset(LINK_LIBRARIES)
+unset(FOAM_USING_VTK_MPI)
+
 # Test some characteristics
-set(test_file ${CMAKE_CURRENT_BINARY_DIR}/check_mpi.cxx)
-file(WRITE ${test_file}
-    "#include <vtkMPICommunicator.h>\n"
-    "int main() {\n"
-    "  vtkMPICommunicator* p = vtkMPICommunicator::New();\n"
-    "  p->Delete();\n"
-    "  return 0;\n"
-    "}"
-)
-try_compile(FOAM_USING_VTK_MPI
-    ${CMAKE_CURRENT_BINARY_DIR} ${test_file}
-    LINK_LIBRARIES vtkParallelMPI
-    CMAKE_FLAGS "-DINCLUDE_DIRECTORIES=${VTK_INCLUDE_DIRS}"
-)
+
+if (${ParaView_VERSION} GREATER_EQUAL 5.7)
+    if (TARGET "VTK::ParallelMPI")
+        set(FOAM_USING_VTK_MPI TRUE)
+    endif()
+elseif (${VTK_VERSION} LESS 8.90)
+    # Older way to test for VTK MPI
+
+    set(test_file ${CMAKE_CURRENT_BINARY_DIR}/check_mpi.cxx)
+    file(WRITE ${test_file}
+        "#include <vtkMPICommunicator.h>\n"
+        "int main() {\n"
+        "  vtkMPICommunicator* p = vtkMPICommunicator::New();\n"
+        "  p->Delete();\n"
+        "  return 0;\n"
+        "}"
+    )
+    try_compile(FOAM_USING_VTK_MPI
+        ${CMAKE_CURRENT_BINARY_DIR} ${test_file}
+        LINK_LIBRARIES vtkParallelMPI
+        CMAKE_FLAGS "-DINCLUDE_DIRECTORIES=${VTK_INCLUDE_DIRS}"
+    )
+
+    if (FOAM_USING_VTK_MPI)
+        include(vtkMPI)
+        set(LINK_LIBRARIES vtkParallelMPI)
+    endif()
+elseif (${ParaView_VERSION} LESS_EQUAL 0)
+    #TODO if (TARGET "ParallelMPI")
+    #TODO     set(FOAM_USING_VTK_MPI TRUE)
+    #TODO endif()
+endif()
+
+#-----------------------------------------------------------------------------
+
 if (FOAM_USING_VTK_MPI)
     add_definitions(-DFOAM_USING_VTK_MPI)
     message("Building with VTK MPI")
-    include(vtkMPI)
 else()
     message(WARNING "==== Building without VTK MPI ====")
 endif()
 
 #-----------------------------------------------------------------------------
+
+link_directories(
+    $ENV{FOAM_LIBBIN}
+)
 
 include_directories(
     ${LIB_SRC}/OpenFOAM/include
@@ -44,12 +71,6 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_BINARY_DIR}
 )
-
-link_directories(
-    $ENV{FOAM_LIBBIN}
-)
-
-set(CMAKE_BUILD_TYPE Release)
 
 # Build intermediate (library) directly into the OpenFOAM libdir
 # - implies CMAKE_INSTALL_PREFIX is ignored and there is no 'install' phase
@@ -97,12 +118,6 @@ set(OPENFOAM_LIBRARIES
     fileFormats
     conversion
 )
-
-if (FOAM_USING_VTK_MPI)
-    set(LINK_LIBRARIES vtkParallelMPI)
-else()
-    set(LINK_LIBRARIES)
-endif()
 
 add_library(
     runTimePostProcessing

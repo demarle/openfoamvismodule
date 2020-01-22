@@ -5,4 +5,4 @@ vtkPVFoamMeshLagrangian.C
 vtkPVFoamMeshVolume.C
 vtkPVFoamUpdateInfo.C
 
-LIB = $(FOAM_LIBBIN)/libvtkPVFoam-pv${PARAVIEW_API}
+LIB = $(FOAM_LIBBIN)/libvtkPVFoamReader-pv${PARAVIEW_API}

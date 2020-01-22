@@ -12,8 +12,11 @@ wclean libso blockMeshReader/library
 wclean libso foamReader/library
 
 # Cleanup client-server and/or combined plugins
-rm -f $FOAM_LIBBIN/libPVblockMeshReader* 2>/dev/null
-rm -f $FOAM_LIBBIN/libPVFoamReader* 2>/dev/null
+if [ -d "$FOAM_PV_PLUGIN_LIBBIN" ]
+then
+    echo "Remaining plugins: $FOAM_PV_PLUGIN_LIBBIN"
+    # rm -rf "$FOAM_PV_PLUGIN_LIBBIN"
+fi
 
 # Cleanup generated files - remove entire top-level
 removeObjectDir "$PWD"

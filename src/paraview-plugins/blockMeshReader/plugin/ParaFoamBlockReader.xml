@@ -1,7 +1,7 @@
 <ServerManagerConfiguration>
   <ProxyGroup name="sources">
   <SourceProxy
-    name="PVblockMeshReader"
+    name="ParaFoamBlockReader"
     class="vtkPVblockMeshReader">
 
     <!-- File name - compulsory -->

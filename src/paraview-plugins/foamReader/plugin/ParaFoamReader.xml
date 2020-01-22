@@ -1,7 +1,7 @@
 <ServerManagerConfiguration>
   <ProxyGroup name="sources">
   <SourceProxy
-    name="PVFoamReader"
+    name="ParaFoamReader"
     class="vtkPVFoamReader">
 
     <!-- File name - compulsory -->

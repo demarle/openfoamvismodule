@@ -1,6 +1,45 @@
 #-----------------------------------------------------------------------------
 # OpenFOAM reader plugin for ParaView GUI (5.7+)
 
-message(FATAL_ERROR "paraview-${pv_api} not yet supported")
+set(CMAKE_BUILD_TYPE Release)
+
+cmake_minimum_required(VERSION 3.8)
+project(ParaFoamReader)
+find_package(ParaView REQUIRED)
+
+include(GNUInstallDirs)
+if (STAGED_INSTALL_PREFIX)
+    set(CMAKE_INSTALL_PREFIX "${STAGED_INSTALL_PREFIX}")
+    ## message("use staged install: ${STAGED_INSTALL_PREFIX}")
+else()
+    set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}")
+endif()
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_BINDIR}")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}")
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}")
+
+set(PARAVIEW_PLUGIN_ENABLE_ParaFoamReader TRUE)
+
+set("_paraview_plugin_default_${CMAKE_PROJECT_NAME}" ON)
+paraview_plugin_scan(
+  PLUGIN_FILES      "${CMAKE_CURRENT_SOURCE_DIR}/plugin/paraview.plugin"
+  PROVIDES_PLUGINS  plugins
+  REQUIRES_MODULES  required_modules)
+
+foreach(module IN LISTS required_modules)
+  if(NOT TARGET "${module}")
+    message("Missing required module: ${module}")
+    return()
+  endif()
+endforeach()
+
+paraview_plugin_build(
+  PLUGINS ${plugins}
+  AUTOLOAD ${plugins}
+  RUNTIME_DESTINATION "${CMAKE_INSTALL_BINDIR}"
+  LIBRARY_DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+  LIBRARY_SUBDIRECTORY "${PARAVIEW_PLUGIN_SUBDIR}"
+)
 
 #-----------------------------------------------------------------------------

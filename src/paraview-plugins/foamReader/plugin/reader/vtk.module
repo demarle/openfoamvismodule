@@ -1,0 +1,9 @@
+NAME
+  FoamReader
+DEPENDS
+  VTK::CommonCore
+  VTK::CommonDataModel
+  VTK::CommonExecutionModel
+PRIVATE_DEPENDS
+  ParaView::pqCore
+  ParaView::ServerManagerRendering

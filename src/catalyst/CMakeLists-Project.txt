@@ -12,7 +12,7 @@ if (${ParaView_VERSION} LESS 5.6)
     message(WARNING "==== CAUTION: Catalyst without chdir capability ====")
 endif()
 
-if (${ParaView_VERSION} GREATER_EQUAL 5.7)
+if (${ParaView_VERSION} VERSION_GREATER_EQUAL 5.7)
     if (TARGET "VTK::ParallelMPI")
         set(FOAM_USING_VTK_MPI TRUE)
     endif()

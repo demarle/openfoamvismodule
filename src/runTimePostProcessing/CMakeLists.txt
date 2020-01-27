@@ -1,5 +1,5 @@
 #------------------------------------------------------------------------------
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.8)
 cmake_policy(SET CMP0002 NEW)   # For cmake >= 3
 cmake_policy(SET CMP0057 NEW)   # For cmake >= 3.10.2
 
@@ -24,7 +24,7 @@ elseif (EXISTS "$ENV{ParaView_DIR}")
     message("Building with Paraview from $ENV{ParaView_DIR}")
 
     find_package(ParaView REQUIRED)
-    if (${ParaView_VERSION} GREATER_EQUAL 5.7)
+    if (${ParaView_VERSION} VERSION_GREATER_EQUAL 5.7)
         find_package(ParaView REQUIRED
             OPTIONAL_COMPONENTS VTK::ParallelMPI)
     endif()

@@ -13,7 +13,7 @@ unset(FOAM_USING_VTK_MPI)
 
 # Test some characteristics
 
-if (${ParaView_VERSION} GREATER_EQUAL 5.7)
+if (${ParaView_VERSION} VERSION_GREATER_EQUAL 5.7)
     if (TARGET "VTK::ParallelMPI")
         set(FOAM_USING_VTK_MPI TRUE)
     endif()

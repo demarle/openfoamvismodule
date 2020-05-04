@@ -5,7 +5,7 @@
     \\  /    A nd           | www.openfoam.com
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
-    Copyright (C) 2017-2019 OpenCFD Ltd.
+    Copyright (C) 2017-2020 OpenCFD Ltd.
 -------------------------------------------------------------------------------
 License
     This file is part of OpenFOAM.
@@ -299,7 +299,7 @@ void Foam::vtk::fvMeshAdaptor::applyGhostingBoundary(const labelUList& types)
 void Foam::vtk::fvMeshAdaptor::applyGhosting()
 {
     const auto* stencilPtr =
-        mesh_.lookupObjectPtr<cellCellStencilObject>
+        mesh_.cfindObject<cellCellStencilObject>
         (
             cellCellStencilObject::typeName
         );

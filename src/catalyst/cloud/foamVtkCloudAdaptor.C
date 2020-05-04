@@ -5,7 +5,7 @@
     \\  /    A nd           | www.openfoam.com
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
-    Copyright (C) 2018-2019 OpenCFD Ltd.
+    Copyright (C) 2018-2020 OpenCFD Ltd.
 -------------------------------------------------------------------------------
 License
     This file is part of OpenFOAM.
@@ -73,7 +73,7 @@ Foam::vtk::cloudAdaptor::getCloudImpl
 
     auto output = vtkSmartPointer<vtkMultiPieceDataSet>::New();
 
-    const auto* objPtr = mesh.lookupObjectPtr<cloud>(cloudName);
+    const auto* objPtr = mesh.cfindObject<cloud>(cloudName);
     if (!objPtr)
     {
         return output;
@@ -94,7 +94,7 @@ Foam::vtk::cloudAdaptor::getCloudImpl
 
     objPtr->writeObjects(obrTmp);
 
-    const auto* pointsPtr = obrTmp.lookupObjectPtr<vectorField>("position");
+    const auto* pointsPtr = obrTmp.cfindObject<vectorField>("position");
 
     vtkSmartPointer<vtkPolyData> vtkmesh;
     if (pointsPtr)

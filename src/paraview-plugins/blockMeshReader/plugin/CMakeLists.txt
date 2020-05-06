@@ -12,6 +12,7 @@ paraview_plugin_add_property_widget(
 
 set(BUILD_SHARED_LIBS_BACKUP ${BUILD_SHARED_LIBS})
 set(BUILD_SHARED_LIBS ON)
+
 paraview_add_plugin(ParaFoamBlockReader
     VERSION "${foam_api}"
     UI_INTERFACES
@@ -27,6 +28,8 @@ paraview_add_plugin(ParaFoamBlockReader
 set(BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS_BACKUP})
 
 target_link_libraries(ParaFoamBlockReader
-  PUBLIC ParaView::pqApplicationComponents)
+  PUBLIC
+  ParaView::pqApplicationComponents
+)
 
 #-----------------------------------------------------------------------------

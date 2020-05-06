@@ -12,6 +12,9 @@ else()
     set(WM_OSTYPE "POSIX")
 endif()
 
+# Project libraries, as per wmake internals
+set(FOAM_LIBBIN "$ENV{FOAM_LIBBIN}")
+
 # Convenience name, as per wmake internals
 set(LIB_SRC "$ENV{WM_PROJECT_DIR}/src")
 

@@ -1,7 +1,4 @@
 #-----------------------------------------------------------------------------
-project(runTimePostProcessing)
-
-set(CMAKE_BUILD_TYPE Release)
 
 if(${VTK_VERSION_MAJOR} LESS 6)
     message(FATAL_ERROR " VTK version is too old - requires VTK6 or newer")
@@ -56,34 +53,15 @@ endif()
 
 #-----------------------------------------------------------------------------
 
-link_directories(
-    $ENV{FOAM_LIBBIN}
-)
+# Predefined values from CMakeLists-library.txt
+link_directories(${OPENFOAM_LINK_DIRS})
 
 include_directories(
-    ${LIB_SRC}/OpenFOAM/include
-    ${LIB_SRC}/OpenFOAM/lnInclude
-    ${LIB_SRC}/OSspecific/${WM_OSTYPE}/lnInclude
-    ${LIB_SRC}/finiteVolume/lnInclude
-    ${LIB_SRC}/fileFormats/lnInclude
-    ${LIB_SRC}/conversion/lnInclude
-    ${LIB_SRC}/surfMesh/lnInclude
+    ${OPENFOAM_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-# Build intermediate (library) directly into the OpenFOAM libdir
-# - implies CMAKE_INSTALL_PREFIX is ignored and there is no 'install' phase
-set(LIBRARY_OUTPUT_PATH $ENV{FOAM_LIBBIN}
-    CACHE INTERNAL
-    ""
-)
-
-## Record VTK version for general bookkeeping
-# file(WRITE
-#     ${CMAKE_BINARY_DIR}/version
-#     "VTK_VERSION=${VTK_VERSION}\n"
-# )
 
 file(GLOB SOURCE_FILES
     fieldVisualisationBase.C
@@ -111,14 +89,6 @@ file(GLOB SOURCE_FILES
     volumeFilter.C
 )
 
-set(OPENFOAM_LIBRARIES
-    OpenFOAM
-    finiteVolume
-    surfMesh
-    fileFormats
-    conversion
-)
-
 add_library(
     runTimePostProcessing
     SHARED
@@ -136,7 +106,16 @@ target_link_libraries(
     runTimePostProcessing
     ${VTK_LIBRARIES}
     ${LINK_LIBRARIES}
-    ${OPENFOAM_LIBRARIES}
+    ${OPENFOAM_LIBNAMES}
 )
+
+
+install(TARGETS ${CMAKE_PROJECT_NAME} DESTINATION lib)
+
+## Record VTK version for general bookkeeping
+# file(WRITE
+#     ${CMAKE_BINARY_DIR}/version
+#     "VTK_VERSION=${VTK_VERSION}\n"
+# )
 
 #-----------------------------------------------------------------------------

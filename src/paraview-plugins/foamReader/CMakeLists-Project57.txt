@@ -1,23 +1,24 @@
 #-----------------------------------------------------------------------------
 # OpenFOAM reader plugin for ParaView GUI (5.7+)
 
-set(CMAKE_BUILD_TYPE Release)
-
 cmake_minimum_required(VERSION 3.8)
-project(ParaFoamReader)
 find_package(ParaView REQUIRED)
 
-include(GNUInstallDirs)
+# Currently use a hack to stage the installation (2020-04-29)
 if (STAGED_INSTALL_PREFIX)
     set(CMAKE_INSTALL_PREFIX "${STAGED_INSTALL_PREFIX}")
-    ## message("use staged install: ${STAGED_INSTALL_PREFIX}")
-else()
-    set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}")
+    message("Staged prefix = ${CMAKE_INSTALL_PREFIX}")
 endif()
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_BINDIR}")
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}")
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}")
+#-----------------------------------------------------------------------------
+# Don't use CMAKE_INSTALL_LIBDIR here
+# OpenFOAM uses lib (not lib64, or lib/multi-arch)
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin")
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/lib")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/lib")
+####
+
 
 set(PARAVIEW_PLUGIN_ENABLE_ParaFoamReader TRUE)
 
@@ -25,7 +26,9 @@ set("_paraview_plugin_default_${CMAKE_PROJECT_NAME}" ON)
 paraview_plugin_scan(
   PLUGIN_FILES      "${CMAKE_CURRENT_SOURCE_DIR}/plugin/paraview.plugin"
   PROVIDES_PLUGINS  plugins
-  REQUIRES_MODULES  required_modules)
+  ENABLE_BY_DEFAULT ON
+  REQUIRES_MODULES  required_modules
+)
 
 foreach(module IN LISTS required_modules)
   if(NOT TARGET "${module}")
@@ -34,12 +37,15 @@ foreach(module IN LISTS required_modules)
   endif()
 endforeach()
 
+# Install under <platform>/<arch>/lib, not lib64
+# Don't want static libraries, include files...
 paraview_plugin_build(
   PLUGINS ${plugins}
   AUTOLOAD ${plugins}
-  RUNTIME_DESTINATION "${CMAKE_INSTALL_BINDIR}"
-  LIBRARY_DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-  LIBRARY_SUBDIRECTORY "${PARAVIEW_PLUGIN_SUBDIR}"
 )
+
+##  RUNTIME_DESTINATION "${CMAKE_INSTALL_BINDIR}"
+##  LIBRARY_DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+##  LIBRARY_SUBDIRECTORY "${PARAVIEW_PLUGIN_SUBDIR}"
 
 #-----------------------------------------------------------------------------

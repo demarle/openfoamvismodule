@@ -1,66 +1,63 @@
 #-----------------------------------------------------------------------------
 set(classes vtkPVFoamReader)
 
-vtk_module_add_module(FoamReader
+set(TARGET_NAME FoamReader)
+
+vtk_module_add_module(${TARGET_NAME}
   FORCE_STATIC
   CLASSES ${classes})
 
-target_include_directories(FoamReader
+# Predefined values from CMakeLists-library.txt
+target_include_directories(${TARGET_NAME}
     PUBLIC
-    ${LIB_SRC}/OpenFOAM/include
-    ${LIB_SRC}/OpenFOAM/lnInclude
-    ${LIB_SRC}/OSspecific/${WM_OSTYPE}/lnInclude
-    ${LIB_SRC}/fileFormats/lnInclude
-    ${LIB_SRC}/conversion/lnInclude
-    ${LIB_SRC}/finiteArea/lnInclude
-    ${LIB_SRC}/finiteVolume/lnInclude
-    ${PROJECT_SOURCE_DIR}/../common
-    ${PROJECT_SOURCE_DIR}/library
-)
-
-set(OPENFOAM_LIBNAMES
-    OpenFOAM
-    fileFormats
-    conversion
-    finiteArea
-    finiteVolume
+    ${OPENFOAM_INCLUDE_DIRS}
 )
 
 
 # With cmake 3.12 and newer, can simply use target_link_directories
-
-# target_link_directories(FoamReader
+# ----
+# target_link_directories(${TARGET_NAME}
 #     PUBLIC
-#     $ENV{FOAM_LIBBIN}
+#     ${FOAM_LIBBIN}
+#     ${SUPPORTING_LIBBIN}
 # )
 
-# target_link_libraries(FoamReader
+# target_link_libraries(${TARGET_NAME}
 #     PUBLIC
-#     vtkPVFoamCommon${foamPvLibQualifier}
-#     vtkPVFoamReader${foamPvLibQualifier}
 #     ${OPENFOAM_LIBNAMES}
+#     ${SUPPORTING_LIBNAMES}
 # )
+# ----
 
 
 # Older cmake. Do manually
+# ----
 
-link_directories(
-    $ENV{FOAM_LIBBIN}
-)
+# Predefined values from CMakeLists-library.txt
+link_directories(${OPENFOAM_LINK_DIRS})
 
 unset(OPENFOAM_LIBS)
-
 foreach(libname ${OPENFOAM_LIBNAMES})
     unset(libpath CACHE)
-    find_library(libpath ${libname} PATHS $ENV{FOAM_LIBBIN})
+    find_library(libpath ${libname} PATHS ${FOAM_LIBBIN})
     list(APPEND OPENFOAM_LIBS ${libpath})
 endforeach(libname)
 
-target_link_libraries(FoamReader
+unset(SUPPORTING_LIBS)
+foreach(libname ${SUPPORTING_LIBNAMES})
+    unset(libpath CACHE)
+    find_library(libpath ${libname} PATHS ${SUPPORTING_LIBBIN})
+    list(APPEND SUPPORTING_LIBS ${libpath})
+endforeach(libname)
+
+## message("Uses libs ${SUPPORTING_LIBNAMES}")
+
+target_link_libraries(${TARGET_NAME}
     PUBLIC
-    vtkPVFoamCommon${foamPvLibQualifier}
-    vtkPVFoamReader${foamPvLibQualifier}
+    Qt5::Core
+    Qt5::Gui
     ${OPENFOAM_LIBS}
+    ${SUPPORTING_LIBS}
 )
 
 #-----------------------------------------------------------------------------

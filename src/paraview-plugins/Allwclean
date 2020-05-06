@@ -14,7 +14,7 @@ wclean libso foamReader/library
 # Cleanup client-server and/or combined plugins
 if [ -d "$FOAM_PV_PLUGIN_LIBBIN" ]
 then
-    echo "Remaining plugins: $FOAM_PV_PLUGIN_LIBBIN"
+    echo "Remaining plugins? : $FOAM_PV_PLUGIN_LIBBIN"
     # rm -rf "$FOAM_PV_PLUGIN_LIBBIN"
 fi
 

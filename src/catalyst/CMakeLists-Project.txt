@@ -1,9 +1,4 @@
 #------------------------------------------------------------------------------
-project(catalyst)
-
-set(CMAKE_BUILD_TYPE Release)
-
-# ----------------------------------------------------------------------
 unset(LINK_LIBRARIES)
 
 # Prior to paraview-5.6 no working directory support in Catalyst
@@ -13,16 +8,21 @@ if (${ParaView_VERSION} LESS 5.6)
 endif()
 
 if (${ParaView_VERSION} VERSION_GREATER_EQUAL 5.7)
-    if (TARGET "VTK::ParallelMPI")
+    if (TARGET VTK::ParallelMPI)
         set(FOAM_USING_VTK_MPI TRUE)
+    endif()
+    if (TARGET ParaView::PythonCatalyst)
+        message("has catalyst")
+    else()
+        message("no catalyst")
     endif()
 endif()
 
 # ----------------------------------------------------------------------
 
 link_directories(
-    $ENV{FOAM_LIBBIN}
-    $ENV{FOAM_LIBBIN}/dummy
+    ${FOAM_LIBBIN}
+    ${FOAM_LIBBIN}/dummy
 )
 
 include_directories(
@@ -61,7 +61,7 @@ file(GLOB SOURCE_FILES
     volMesh/foamVtkFvMeshAdaptorFields.C
 )
 
-set(OPENFOAM_LIBRARIES
+set(OPENFOAM_LIBNAMES
     OpenFOAM
     Pstream
     finiteArea
@@ -90,7 +90,7 @@ target_link_libraries(
     catalystFoam
     ${VTK_LIBRARIES}
     ${LINK_LIBRARIES}
-    ${OPENFOAM_LIBRARIES}
+    ${OPENFOAM_LIBNAMES}
 )
 
 install(TARGETS catalystFoam DESTINATION lib)

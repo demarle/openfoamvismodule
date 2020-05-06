@@ -1,3 +1,8 @@
+/* Default is PROJECT target */
+ifeq (,$(CMAKE_INSTALL_PREFIX))
+    CMAKE_INSTALL_PREFIX := $(dir $(FOAM_LIBBIN))
+endif
+
 EXE_INC = \
     ${c++LESSWARN} \
     -I$(LIB_SRC)/conversion/lnInclude \

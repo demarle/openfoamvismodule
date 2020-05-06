@@ -1,20 +1,27 @@
 #!/bin/sh
 cd "${0%/*}" || exit                                # Run from this directory
-. ${WM_PROJECT_DIR:?}/wmake/scripts/cmakeFunctions  # The cmake functions
+export WM_CONTINUE_ON_ERROR=true                    # Optional unit
+. ${WM_PROJECT_DIR:?}/wmake/scripts/cmakeFunctions  # Cmake functions
+. ${WM_PROJECT_DIR:?}/wmake/scripts/wmake.cmake-args
+. ${WM_PROJECT_DIR:?}/wmake/scripts/AllwmakeParseArguments
+#------------------------------------------------------------------------------
+# Copyright (C) 2020 OpenCFD Ltd.
+# This file is part of OpenFOAM, distributed under GPL-3.0-or-later.
+#
+# Note
+#     - use '-prefix=..' to define installation prefix (default: FOAM_LIBBIN)
+#     - MPI detection may not work properly with later VTK/ParaView versions
 #------------------------------------------------------------------------------
 
-# Installation prefix: user/group/other or custom
-case "$1" in
-    -prefix=u) prefix="${FOAM_USER_LIBBIN%/*}" ;; # user
-    -prefix=g) prefix="${FOAM_SITE_LIBBIN%/*}" ;; # group
-    -prefix=o) prefix="${FOAM_LIBBIN%/*}" ;; # other/openfoam
-    -prefix=*) prefix="${1#*=}" ;;
-esac
-
 # Default is openfoam (FOAM_LIBBIN)
-: "${prefix:=$WM_PROJECT_DIR/platforms/$WM_OPTIONS}"
+: "${CMAKE_INSTALL_PREFIX:=${FOAM_LIBBIN%/*}}"
 
-cmakeOpts="-DCMAKE_INSTALL_PREFIX=$prefix"
+unset cmakeOpts
+if [ -n "$CMAKE_INSTALL_PREFIX" ]
+then
+    export CMAKE_INSTALL_PREFIX
+    cmakeOpts="-DCMAKE_INSTALL_PREFIX=$CMAKE_INSTALL_PREFIX"
+fi
 
 #------------------------------------------------------------------------------
 
@@ -22,7 +29,15 @@ echo "======================================================================"
 echo "${PWD##*/} : $PWD"
 echo
 
-unset depend
+unset depend catalystDebug
+
+
+# If available, prefer use of ParaView MESA
+if [ -d "$ParaView_MESA_DIR" ]
+then
+    export ParaView_DIR="$ParaView_MESA_DIR"
+fi
+
 if [ -d "$ParaView_DIR" ]
 then
     depend="ParaView_DIR=$ParaView_DIR"
@@ -36,8 +51,8 @@ elif [ -n "$depend" ]
 then
     if command -v cmake >/dev/null
     then
-        echo "catalyst prefix : $prefix"
-        cmakeVersionedInstall "$depend" "$PWD" "$cmakeOpts" || {
+        echo "catalyst prefix : $CMAKE_INSTALL_PREFIX"
+        cmakeVersionedInstall "$depend" "$PWD" $cmakeOpts || {
             echo
             echo "    WARNING: incomplete build of ParaView Catalyst"
             echo

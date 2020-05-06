@@ -1,3 +1,8 @@
+/* Default is PROJECT target */
+ifeq (,$(CMAKE_INSTALL_PREFIX))
+    CMAKE_INSTALL_PREFIX := $(dir $(FOAM_LIBBIN))
+endif
+
 EXE_INC = \
     ${c++LESSWARN} \
     -I$(LIB_SRC)/fileFormats/lnInclude \
@@ -21,5 +26,5 @@ LIB_LIBS = \
     -ldynamicMesh \
     -lgenericPatchFields \
     -llagrangian \
-    -L$(FOAM_LIBBIN) -lvtkPVFoamCommon-pv${PARAVIEW_API} \
+    -L$(CMAKE_INSTALL_PREFIX)/lib -lvtkPVFoamCommon-pv${PARAVIEW_API} \
     $(GLIBS)

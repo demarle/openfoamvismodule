@@ -1,7 +1,10 @@
 #------------------------------------------------------------------------------
+project(runTimePostProcessing)
+
 cmake_minimum_required(VERSION 3.8)
 cmake_policy(SET CMP0002 NEW)   # For cmake >= 3
 cmake_policy(SET CMP0057 NEW)   # For cmake >= 3.10.2
+set(CMAKE_BUILD_TYPE Release)
 
 # Fail if not building out-of-source
 if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
@@ -37,6 +40,8 @@ if (VTK_USE_FILE)
     include(${VTK_USE_FILE})
 endif()
 
+include(GNUInstallDirs)
+
 #-----------------------------------------------------------------------------
 # Handle name changes (eg, VTK_MAJOR_VERSION to VTK_VERSION_MAJOR etc.)
 
@@ -65,16 +70,27 @@ endif()
 #-----------------------------------------------------------------------------
 
 message("================")
+message("Using OpenFOAM = $ENV{WM_PROJECT_DIR}")
 if (${ParaView_VERSION} GREATER 0)
-message("Using ParaView ${ParaView_VERSION} (VTK ${VTK_VERSION})")
+message("Using ParaView = ${ParaView_VERSION} (VTK ${VTK_VERSION})")
 else()
 message("Using VTK ${VTK_VERSION}")
 endif()
-message("================")
-
-#-----------------------------------------------------------------------------
 
 include(CMakeLists-OpenFOAM.txt)
+include(CMakeLists-library.txt)
+
+# Default is PROJECT target, with supporting libraries from FOAM_LIBBIN
+# Possible temporary override with 'STAGED_INSTALL_PREFIX' later
+if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    get_filename_component(FOAM_PLATFORMS ${FOAM_LIBBIN} DIRECTORY)
+    set(CMAKE_INSTALL_PREFIX "${FOAM_PLATFORMS}"
+        CACHE PATH "Install path prefix" FORCE)
+endif()
+message("Install prefix = ${CMAKE_INSTALL_PREFIX}")
+
+
+message("================")
 include(CMakeLists-Project.txt)
 
 #-----------------------------------------------------------------------------

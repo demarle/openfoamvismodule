@@ -1,9 +1,6 @@
 NAME
   blockMeshReader
 DEPENDS
-  VTK::CommonCore
-  VTK::CommonDataModel
-  VTK::CommonExecutionModel
+  VTK::FiltersCore
 PRIVATE_DEPENDS
-  ParaView::pqCore
-  ParaView::ServerManagerRendering
+  VTK::CommonCore

@@ -1,7 +1,10 @@
 #------------------------------------------------------------------------------
+project(ParaFoamReader)
+
 cmake_minimum_required(VERSION 3.8)
 cmake_policy(SET CMP0002 NEW)   # For cmake >= 3
 cmake_policy(SET CMP0057 NEW)   # For cmake >= 3.10.2
+set(CMAKE_BUILD_TYPE Release)
 
 # Fail if not building out-of-source
 if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
@@ -40,6 +43,8 @@ endif()
 
 set(foamPvLibQualifier "-pv${pv_api}")
 
+include(GNUInstallDirs)
+
 #-----------------------------------------------------------------------------
 
 message("================")
@@ -47,6 +52,20 @@ message("Using ParaView = $ENV{ParaView_DIR}")
 message("OpenFOAM api   = ${foam_api}, libs = ${foamPvLibQualifier}")
 
 include(CMakeLists-OpenFOAM.txt)
+include(CMakeLists-library.txt)
+
+# Default is PROJECT target, with supporting libraries from FOAM_LIBBIN
+# Possible temporary override with 'STAGED_INSTALL_PREFIX' later
+if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    get_filename_component(FOAM_PLATFORMS ${FOAM_LIBBIN} DIRECTORY)
+    set(CMAKE_INSTALL_PREFIX "${FOAM_PLATFORMS}"
+        CACHE PATH "Install path prefix" FORCE)
+    set(SUPPORTING_LIBBIN "${FOAM_LIBBIN}")
+else()
+    set(SUPPORTING_LIBBIN "${CMAKE_INSTALL_PREFIX}/lib")
+endif()
+message("Install prefix = ${CMAKE_INSTALL_PREFIX}")
+
 
 if (${ParaView_VERSION} VERSION_GREATER_EQUAL 5.7)
   message("================")

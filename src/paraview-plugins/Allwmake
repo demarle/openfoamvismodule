@@ -1,20 +1,37 @@
 #!/bin/sh
 cd "${0%/*}" || exit                                # Run from this directory
 export WM_CONTINUE_ON_ERROR=true                    # Optional unit
-. ${WM_PROJECT_DIR:?}/wmake/scripts/AllwmakeParseArguments
 . ${WM_PROJECT_DIR:?}/wmake/scripts/paraviewFunctions # CMake, PV functions
+. ${WM_PROJECT_DIR:?}/wmake/scripts/wmake.cmake-args
+. ${WM_PROJECT_DIR:?}/wmake/scripts/AllwmakeParseArguments
 #------------------------------------------------------------------------------
 # Copyright (C) 2020 OpenCFD Ltd.
 # This file is part of OpenFOAM, distributed under GPL-3.0-or-later.
 #
 # Note
-#     For paraview-5.7 (and later?) plugins are built into their own subdirs.
+#     - use '-prefix=..' to define installation prefix (default: FOAM_LIBBIN)
+#
+# Note
+#     For paraview-5.7 (and later) plugins are built into their own subdirs.
 #     It also is not possible to suppress creation of static libraries in the
 #     process.
 #
 # Current solution (ugly)
 #     - install into a local "staged" location (within the build directory)
-#     - use rsync to relocate to the .so files to the plugin directory
+#     - copy the .so files to the plugin directory
+#
+#------------------------------------------------------------------------------
+
+# Default is openfoam (FOAM_LIBBIN)
+: "${CMAKE_INSTALL_PREFIX:=${FOAM_LIBBIN%/*}}"
+
+unset cmakeOpts
+if [ -n "$CMAKE_INSTALL_PREFIX" ]
+then
+    export CMAKE_INSTALL_PREFIX
+    cmakeOpts="-DCMAKE_INSTALL_PREFIX=$CMAKE_INSTALL_PREFIX"
+fi
+
 #------------------------------------------------------------------------------
 
 warnIncomplete()
@@ -24,69 +41,82 @@ warnIncomplete()
     echo
 }
 
-if have_pvplugin_support
+have_pvplugin_support || {
+     exit 0  # Optional
+}
+
+
+wmakeLibPv common $cmakeOpts
+wmakeLibPv blockMeshReader/library $cmakeOpts
+wmakeLibPv foamReader/library $cmakeOpts
+
+# Early exit for objects
+if [ "$targetType" = objects ]
 then
-(
-    wmakeLibPv common
-    wmakeLibPv blockMeshReader/library
-    wmakeLibPv foamReader/library
+    exit 0
+fi
 
-    unset cmakeOpts cmakeType
-    unset installDir
 
-    if [ "$targetType" != objects ]
+# Still not entirely convincing
+case "$PARAVIEW_API" in
+(5.[0-6])
+    unset stagingDir # Not needed
+    ;;
+(*)
+    if stagingDir=$(findObjectDir '.')
     then
-        case "$PARAVIEW_API" in
-        (5.[0-6])
-            cmakeType="cmakePv"
-            ;;
-        (*)
-            if installDir=$(findObjectDir '.')
-            then
-                installDir="$installDir/install-prefix"
+        stagingDir="$stagingDir/install-prefix"
 
-                # Require an absolute directory for CMake
-                if [ "${installDir#/}" = "$installDir" ]
-                then
-                    installDir="$PWD/$installDir"
-                fi
-
-                cmakeOpts="$cmakeOpts -DSTAGED_INSTALL_PREFIX=$installDir"
-                cmakeType="cmakePvInstall"
-            else
-                cmakeType="cmakePv"  # cmakeType="cmakePvInstall"
-            fi
-            ;;
-        esac
+        # Need absolute directory for CMake
+        if [ "${stagingDir#/}" = "$stagingDir" ]
+        then
+            stagingDir="$PWD/$stagingDir"
+        fi
     fi
+    ;;
+esac
 
-    rm -rf "$installDir"
+if [ -n "$stagingDir" ]
+then
+    rm -rf -- "$stagingDir"
+    cmakeOpts="$cmakeOpts -DSTAGED_INSTALL_PREFIX=$stagingDir"
+fi
 
-    if [ -n "$cmakeType" ]
-    then
-        "$cmakeType" "$PWD"/blockMeshReader "$cmakeOpts" || warnIncomplete "blockMesh"
-        "$cmakeType" "$PWD"/foamReader "$cmakeOpts" || warnIncomplete "OpenFOAM"
-    fi
 
-    if [ -d "$installDir" ]
-    then
-        [ -d "$FOAM_PV_PLUGIN_LIBBIN" ] || mkdir -p "$FOAM_PV_PLUGIN_LIBBIN"
+for plugin in blockMeshReader foamReader
+do
+    cmakePvInstall "$PWD"/"$plugin" "$cmakeOpts" || \
+        warnIncomplete "$plugin"
+done
 
-        # TODO: handle via targets via CMake
-        for dir in "$installDir/lib" "$installDir/lib64"
-        do
-            if [ -d "$dir" ]
-            then
-                echo
-                for libName in $(find "$dir" -name '*.so')
-                do
-                    echo "Plugin: ${FOAM_PV_PLUGIN_LIBBIN##*/}/${libName##*/}"
-                    rsync -a "$libName" "$FOAM_PV_PLUGIN_LIBBIN"
-                done
-            fi
-        done
-    fi
-)
+
+pluginDir="$FOAM_PV_PLUGIN_LIBBIN"
+if [ -n "$CMAKE_INSTALL_PREFIX" ] && [ -n "$PARAVIEW_API" ]
+then
+    pluginDir="${CMAKE_INSTALL_PREFIX}/lib/paraview-${PARAVIEW_API}"
+fi
+
+
+# Copy from staging to plugins
+if [ -d "$stagingDir" ] && [ -n "$pluginDir" ]
+then
+    [ -d "$pluginDir" ] || mkdir -p "$pluginDir"
+
+    echo
+    echo "Copy plugins: $pluginDir"
+
+    # TODO: handle via targets via CMake
+    for dir in "$stagingDir/lib" "$stagingDir/lib64"
+    do
+        if [ -d "$dir" ]
+        then
+            for libName in $(find "$dir" -name '*.so')
+            do
+                echo "    ${pluginDir##*/}/${libName##*/}"
+                cp -p "$libName" "$pluginDir"
+            done
+        fi
+    done
 fi
 
 #------------------------------------------------------------------------------

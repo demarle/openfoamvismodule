@@ -1,7 +1,30 @@
 #!/bin/sh
 cd "${0%/*}" || exit                                # Run from this directory
-. ${WM_PROJECT_DIR:?}/wmake/scripts/cmakeFunctions  # Require cmake functions
-# -----------------------------------------------------------------------------
+export WM_CONTINUE_ON_ERROR=true                    # Optional unit
+. ${WM_PROJECT_DIR:?}/wmake/scripts/cmakeFunctions  # Cmake functions
+. ${WM_PROJECT_DIR:?}/wmake/scripts/wmake.cmake-args
+. ${WM_PROJECT_DIR:?}/wmake/scripts/AllwmakeParseArguments
+#------------------------------------------------------------------------------
+# Copyright (C) 2020 OpenCFD Ltd.
+# This file is part of OpenFOAM, distributed under GPL-3.0-or-later.
+#
+# Note
+#     - use '-prefix=..' to define installation prefix (default: FOAM_LIBBIN)
+#     - can build with VTK or ParaView (preferred) libraries
+#     - MPI detection may not work properly with later VTK/ParaView versions
+#------------------------------------------------------------------------------
+
+# Default is openfoam (FOAM_LIBBIN)
+: "${CMAKE_INSTALL_PREFIX:=${FOAM_LIBBIN%/*}}"
+
+unset cmakeOpts
+if [ -n "$CMAKE_INSTALL_PREFIX" ]
+then
+    export CMAKE_INSTALL_PREFIX
+    cmakeOpts="-DCMAKE_INSTALL_PREFIX=$CMAKE_INSTALL_PREFIX"
+fi
+
+#------------------------------------------------------------------------------
 
 echo "======================================================================"
 echo "${PWD##*/} : $PWD"
@@ -35,7 +58,7 @@ elif [ -n "$depend" ]
 then
     if command -v cmake >/dev/null
     then
-        cmakeVersioned "$depend" $PWD || {
+        cmakeVersionedInstall "$depend" "$PWD" $cmakeOpts || {
             echo
             echo "    WARNING: incomplete build of VTK-based post-processing"
             echo
@@ -57,7 +80,7 @@ fi
 if [ "${depend:-dummy}" = dummy ]
 then
     echo "==> dummy runTimePostProcessing"
-    wmakeVersioned "vtk=dummy" $PWD dummy
+    wmakeVersioned "vtk=dummy" "$PWD" dummy
 fi
 
 echo "======================================================================"

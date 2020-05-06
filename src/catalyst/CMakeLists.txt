@@ -1,7 +1,10 @@
 #------------------------------------------------------------------------------
+project(catalyst)
+
 cmake_minimum_required(VERSION 3.8)
 cmake_policy(SET CMP0002 NEW)   # For cmake >= 3
 cmake_policy(SET CMP0057 NEW)   # For cmake >= 3.10.2
+set(CMAKE_BUILD_TYPE Release)
 
 # Fail if not building out-of-source
 if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
@@ -38,6 +41,8 @@ else()
     ## include(${PARAVIEW_USE_FILE})
 endif()
 
+include(GNUInstallDirs)
+
 #-----------------------------------------------------------------------------
 
 message("================")
@@ -46,12 +51,20 @@ message("Using ParaView = $ENV{ParaView_DIR}")
 if (NOT PARAVIEW_USE_MPI)
     message(WARNING "==== Recommended to build using ParaView Catalyst with MPI ====")
 endif()
-message("install prefix = ${CMAKE_INSTALL_PREFIX}")
-message("================")
-
-#-----------------------------------------------------------------------------
 
 include(CMakeLists-OpenFOAM.txt)
+
+# Default is PROJECT target, with supporting libraries from FOAM_LIBBIN
+# Possible temporary override with 'STAGED_INSTALL_PREFIX' later
+if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    get_filename_component(FOAM_PLATFORMS ${FOAM_LIBBIN} DIRECTORY)
+    set(CMAKE_INSTALL_PREFIX "${FOAM_PLATFORMS}"
+        CACHE PATH "Install path prefix" FORCE)
+endif()
+message("Install prefix = ${CMAKE_INSTALL_PREFIX}")
+
+
+message("================")
 include(CMakeLists-Project.txt)
 
 #-----------------------------------------------------------------------------

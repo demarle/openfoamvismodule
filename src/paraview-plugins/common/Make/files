@@ -1,3 +1,3 @@
 foamPvCore.C
 
-LIB = $(CMAKE_INSTALL_PREFIX)/lib/libvtkPVFoamCommon-pv${PARAVIEW_API}
+LIB = $(FOAM_MODULE_LIBBIN)/libvtkPVFoamCommon-pv${PARAVIEW_API}

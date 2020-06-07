@@ -1,6 +1,8 @@
-/* Default is PROJECT target */
-ifeq (,$(CMAKE_INSTALL_PREFIX))
-    CMAKE_INSTALL_PREFIX := $(dir $(FOAM_LIBBIN))
+sinclude $(GENERAL_RULES)/module-path-user
+
+/* Failsafe - user location */
+ifeq (,$(strip $(FOAM_MODULE_LIBBIN)))
+    FOAM_MODULE_LIBBIN = $(FOAM_USER_LIBBIN)
 endif
 
 EXE_INC = \
@@ -26,5 +28,5 @@ LIB_LIBS = \
     -ldynamicMesh \
     -lgenericPatchFields \
     -llagrangian \
-    -L$(CMAKE_INSTALL_PREFIX)/lib -lvtkPVFoamCommon-pv${PARAVIEW_API} \
+    -L$(FOAM_MODULE_LIBBIN) -lvtkPVFoamCommon-pv${PARAVIEW_API} \
     $(GLIBS)

@@ -5,4 +5,4 @@ vtkPVFoamMeshLagrangian.C
 vtkPVFoamMeshVolume.C
 vtkPVFoamUpdateInfo.C
 
-LIB = $(CMAKE_INSTALL_PREFIX)/lib/libvtkPVFoamReader-pv${PARAVIEW_API}
+LIB = $(FOAM_MODULE_LIBBIN)/libvtkPVFoamReader-pv${PARAVIEW_API}

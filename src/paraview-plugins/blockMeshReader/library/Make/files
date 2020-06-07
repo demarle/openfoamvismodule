@@ -1,4 +1,4 @@
 vtkPVblockMesh.C
 vtkPVblockMeshConvert.C
 
-LIB = $(CMAKE_INSTALL_PREFIX)/lib/libvtkPVblockReader-pv${PARAVIEW_API}
+LIB = $(FOAM_MODULE_LIBBIN)/libvtkPVblockReader-pv${PARAVIEW_API}

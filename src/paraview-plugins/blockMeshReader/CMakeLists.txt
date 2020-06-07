@@ -58,9 +58,6 @@ message("OpenFOAM api   = ${foam_api}, libs = ${foamPvLibQualifier}")
 
 #-----------------------------------------------------------------------------
 
-include(CMakeLists-OpenFOAM.txt)
-include(CMakeLists-library.txt)
-
 # Default is PROJECT target, with supporting libraries from FOAM_LIBBIN
 # Possible temporary override with 'STAGED_INSTALL_PREFIX' later
 if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
@@ -74,6 +71,8 @@ else()
 endif()
 message("Install prefix = ${CMAKE_INSTALL_PREFIX}")
 
+include(CMakeLists-OpenFOAM.txt)
+include(CMakeLists-library.txt)
 
 if (${ParaView_VERSION} VERSION_GREATER_EQUAL 5.7)
   message("================")

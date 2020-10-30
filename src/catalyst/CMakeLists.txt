@@ -12,6 +12,10 @@ if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
         "In-source builds disallowed. Use a separate build directory")
 endif()
 
+set(OSMESA_LIBRARY /home1/apps/swr/20.0.5/lib64/libOSMesa.so CACHE FILEPATH "" FORCE)
+find_package(MPI REQUIRED COMPONENTS C)
+#find_package(MPI REQUIRED)
+include_directories(${MPI_INCLUDE_DIRS})
 #------------------------------------------------------------------------------
 # Simple discovery and sanity checks
 
@@ -32,7 +36,7 @@ endif()
 
 if (${ParaView_VERSION} VERSION_GREATER_EQUAL 5.7)
     find_package(ParaView REQUIRED
-        COMPONENTS PythonCatalyst
+        COMPONENTS PythonCatalyst RemotingCore
         OPTIONAL_COMPONENTS VTK::ParallelMPI)
 else()
     find_package(ParaView REQUIRED

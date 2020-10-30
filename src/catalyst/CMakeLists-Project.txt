@@ -89,6 +89,8 @@ set_target_properties(
 target_link_libraries(
     catalystFoam
     ${VTK_LIBRARIES}
+    ParaView::PythonCatalyst
+    ParaView::RemotingCore
     ${LINK_LIBRARIES}
     ${OPENFOAM_LIBNAMES}
 )

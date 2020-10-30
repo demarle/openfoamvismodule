@@ -38,6 +38,7 @@ License
 #include <vtkCPInputDataDescription.h>
 #include <vtkCPProcessor.h>
 #include <vtkCPPythonScriptPipeline.h>
+#include <vtkSMSourceProxy.h>
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -75,6 +76,12 @@ bool Foam::catalyst::coprocess::processImpl
             if (input && input->GetIfGridIsNecessary())
             {
                 input->SetGrid(outputs[channel]);
+                vtkSMSourceProxy* cache = coproc_->GetTemporalCache(channel.c_str());
+                if (cache)
+                {
+                    input->SetTemporalCache(cache);
+                }
+
             }
         }
     }
@@ -121,9 +128,13 @@ void Foam::catalyst::coprocess::reset(const fileName& outputDir)
     #ifndef NO_CATALYST_WORKING_DIRECTORY
     if (coproc_ == nullptr)
     {
-        coproc_ = vtkCPProcessor::New();
-        coproc_->Initialize(outputDir.c_str());
-        Info<< "Connecting ParaView Catalyst..." << endl;
+         coproc_ = vtkCPProcessor::New();
+         coproc_->SetTemporalCacheSize(10000);
+         coproc_->Initialize(outputDir.c_str());
+         coproc_->MakeTemporalCache("region");
+         coproc_->MakeTemporalCache("boundary");
+         Info<< "Connecting ParaView Catalyst..." << endl;
+
     }
     else
     {
